@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.prompt import Prompt
 from .utils import get_disk_list, display_disk_table, get_raid_list, display_raid_table
 from .raid_manager import RAIDManager
+import subprocess
 
 console = Console()
 
@@ -85,6 +86,24 @@ def change_mount(device: str, new_mount_point: str):
         console.print("[green]마운트 포인트가 변경되었습니다![/green]")
     else:
         console.print("[red]마운트 포인트 변경에 실패했습니다.[/red]")
+
+@cli.command()
+def list_raid_groups():
+    """RAID로 구성된 모든 그룹을 확인하는 함수"""
+    try:
+        # mdadm --detail --scan 명령을 실행하여 RAID 정보 가져오기
+        result = subprocess.run(['mdadm', '--detail', '--scan'], 
+                              capture_output=True, 
+                              text=True)
+        
+        if result.returncode == 0:
+            print("현재 구성된 RAID 그룹 목록:")
+            print(result.stdout)
+        else:
+            print("RAID 그룹 정보를 가져오는데 실패했습니다.")
+            
+    except Exception as e:
+        print(f"오류 발생: {str(e)}")
 
 if __name__ == '__main__':
     cli() 
