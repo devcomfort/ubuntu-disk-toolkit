@@ -1,6 +1,6 @@
 [project]
 name = "ubuntu-raid-cli"
-version = "0.1.2"
+version = "0.1.3"
 description = "Ubuntu RAID 설정을 위한 CLI 도구"
 authors = [{ name = "devcomfort", email = "im@devcomfort.me" }]
 dependencies = [
