@@ -684,7 +684,7 @@ def version():
         console.print(f"\n[bold blue]Ubuntu RAID CLI[/bold blue]")
         console.print(f"[bold]버전:[/bold] {package_info.get('Version', '알 수 없음')}")
         console.print(f"[bold]라이선스:[/bold] MIT")
-        console.print(f"[bold]저자:[/bold] DevComfort")
+        console.print(f"[bold]저자:[/bold] devcomfort")
         console.print(f"[bold]설치 위치:[/bold] {package_info.get('Location', '알 수 없음')}")
         
     except Exception as e:
