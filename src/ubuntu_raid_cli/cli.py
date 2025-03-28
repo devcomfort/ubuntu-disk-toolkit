@@ -662,21 +662,30 @@ def update():
 def version():
     """프로그램의 현재 버전을 표시합니다."""
     try:
-        # pyproject.toml 파일 경로
-        pyproject_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "pyproject.toml")
+        # pip를 통해 설치된 패키지 정보 확인
+        result = subprocess.run(
+            ['pip', 'show', 'ubuntu-raid-cli'],
+            capture_output=True,
+            text=True
+        )
         
-        # pyproject.toml 파일 읽기
-        with open(pyproject_path, "rb") as f:
-            pyproject_data = tomli.load(f)
-        
-        # 버전 정보 가져오기
-        version = pyproject_data["project"]["version"]
+        if result.returncode != 0:
+            console.print("[red]ubuntu-raid-cli가 설치되어 있지 않습니다.[/red]")
+            return
+            
+        # 패키지 정보 파싱
+        package_info = {}
+        for line in result.stdout.split('\n'):
+            if ':' in line:
+                key, value = line.split(':', 1)
+                package_info[key.strip()] = value.strip()
         
         # 버전 정보 표시
         console.print(f"\n[bold blue]Ubuntu RAID CLI[/bold blue]")
-        console.print(f"[bold]버전:[/bold] {version}")
+        console.print(f"[bold]버전:[/bold] {package_info.get('Version', '알 수 없음')}")
         console.print(f"[bold]라이선스:[/bold] MIT")
         console.print(f"[bold]저자:[/bold] DevComfort")
+        console.print(f"[bold]설치 위치:[/bold] {package_info.get('Location', '알 수 없음')}")
         
     except Exception as e:
         console.print(f"[red]버전 정보를 가져오는 중 오류가 발생했습니다: {str(e)}[/red]")
