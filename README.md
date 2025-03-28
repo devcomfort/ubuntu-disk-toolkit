@@ -21,10 +21,10 @@ Ubuntu 시스템에서 RAID 구성을 쉽게 관리할 수 있는 CLI 도구입�
 - [개발자 가이드](#개발자-가이드)
   - [개발 환경 설정](#개발-환경-설정)
   - [프로젝트 구조](#프로젝트-구조)
-  - [빌드 방법](#빌드-방법)
-    - [독립 실행형(Standalone) 빌드](#독립-실행형standalone-빌드)
+  - [빌드 및 배포](#빌드-및-배포)
   - [테스트](#테스트)
   - [기여 방법](#기여-방법)
+- [문제 해결](#문제-해결)
 - [라이선스](#라이선스)
 
 ---
@@ -180,24 +180,20 @@ rye sync --dev
 
 ```
 ubuntu-raid-cli/
-├── dist/                  # 빌드된 패키지 파일
-├── scripts/               # 설치 및 유틸리티 스크립트
-│   ├── build.sh           # 빌드 스크립트
-│   ├── install.sh         # 설치 스크립트
-│   ├── setup_all.sh       # 통합 설치 스크립트
-│   └── standalone_build.sh # 독립 실행형 빌드 스크립트
 ├── src/
-│   └── ubuntu_raid_cli/   # 소스 코드
+│   └── ubuntu_raid_cli/   # 메인 패키지
 │       ├── __init__.py
 │       ├── cli.py         # CLI 인터페이스
-│       ├── main.py        # 메인 진입점
-│       ├── raid_manager.py # RAID 관리 기능
-│       └── utils.py       # 유틸리티 함수
-├── pyproject.toml         # 프로젝트 설정
-└── README.md              # 문서
+│       ├── main.py        # 진입점
+│       ├── raid_manager.py # RAID 관리
+│       └── utils.py       # 유틸리티
+├── scripts/               # 빌드/설치 스크립트
+├── tests/                # 테스트 코드
+├── pyproject.toml        # 프로젝트 설정
+└── README.md
 ```
 
-## 빌드 방법
+## 빌드 및 배포
 
 Rye를 사용한 빌드:
 
@@ -209,45 +205,7 @@ rye sync --dev
 rye build
 ```
 
-빌드 스크립트 사용:
-
-```bash
-chmod +x scripts/build.sh
-./scripts/build.sh
-```
-
 빌드된 패키지는 `dist/` 디렉토리에 생성됩니다.
-
-### 독립 실행형(Standalone) 빌드
-
-PyInstaller를 사용하여 독립 실행형 실행 파일을 생성합니다:
-
-```bash
-# 스크립트 실행 권한 부여
-chmod +x scripts/standalone_build.sh
-
-# 빌드 실행
-./scripts/standalone_build.sh
-```
-
-이 스크립트는 다음 과정을 자동화합니다:
-
-1. 가상환경 생성 및 의존성 설치
-2. PyInstaller를 사용한 독립 실행형(standalone) 실행 파일 생성
-3. 설치 스크립트가 포함된 배포 패키지(.tar.gz) 생성
-
-생성된 배포 패키지는 `release/ubuntu-raid-cli-standalone.tar.gz`에 저장됩니다.
-
-독립 실행형 빌드의 장점:
-- Python 환경 없이도 실행 가능
-- 모든 의존성 패키지가 단일 실행 파일에 포함됨
-- 별도의 개발 환경 없이 대상 시스템에 쉽게 배포 가능
-
-대상 시스템에 설치:
-```bash
-tar -xzvf ubuntu-raid-cli-standalone.tar.gz
-sudo ./install.sh
-```
 
 ## 테스트
 
@@ -282,6 +240,8 @@ mypy src/
 
 ---
 
-# 라이선스
+# 문제 해결
+
+## 라이선스
 
 이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
