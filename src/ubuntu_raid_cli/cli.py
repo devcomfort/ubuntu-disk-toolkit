@@ -13,6 +13,9 @@ import subprocess
 import json
 from pathlib import Path
 import psutil
+import typer
+import os
+import tomli
 
 console = Console()
 
@@ -654,6 +657,29 @@ def update():
             
     except Exception as e:
         console.print(f"[red]업데이트 중 오류 발생: {str(e)}[/red]")
+
+@cli.command()
+def version():
+    """프로그램의 현재 버전을 표시합니다."""
+    try:
+        # pyproject.toml 파일 경로
+        pyproject_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "pyproject.toml")
+        
+        # pyproject.toml 파일 읽기
+        with open(pyproject_path, "rb") as f:
+            pyproject_data = tomli.load(f)
+        
+        # 버전 정보 가져오기
+        version = pyproject_data["project"]["version"]
+        
+        # 버전 정보 표시
+        console.print(f"\n[bold blue]Ubuntu RAID CLI[/bold blue]")
+        console.print(f"[bold]버전:[/bold] {version}")
+        console.print(f"[bold]라이선스:[/bold] MIT")
+        console.print(f"[bold]저자:[/bold] DevComfort")
+        
+    except Exception as e:
+        console.print(f"[red]버전 정보를 가져오는 중 오류가 발생했습니다: {str(e)}[/red]")
 
 if __name__ == '__main__':
     cli() 

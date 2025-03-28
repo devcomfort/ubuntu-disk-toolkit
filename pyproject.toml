@@ -8,6 +8,7 @@ dependencies = [
     "rich>=13.9.4",
     "psutil>=5.9.0",  # 디스크 정보 확인용
     "pyinstaller>=6.5.0",  # 바이너리 빌드용
+    "tomli>=2.0.1",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
