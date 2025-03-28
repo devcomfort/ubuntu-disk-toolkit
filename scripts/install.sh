@@ -30,7 +30,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         --auto)
-            INSTALL_METHOD="pip"
+            INSTALL_METHOD="rye"
             shift
             ;;
         *)
@@ -44,32 +44,79 @@ log_info "Ubuntu RAID CLI 설치 프로그램"
 
 if [ -n "$INSTALL_METHOD" ]; then
     case $INSTALL_METHOD in
+        rye)
+            log_info "명령형 설치: rye를 통한 설치를 진행합니다."
+            install_method=1
+            ;;
         pip)
             log_info "명령형 설치: pip를 통한 설치를 진행합니다."
-            install_method=1
+            install_method=2
             ;;
         binary)
             log_info "명령형 설치: 바이너리 설치를 진행합니다."
-            install_method=2
+            install_method=3
             ;;
         *)
             log_error "지원하지 않는 설치 방법입니다: $INSTALL_METHOD"
-            log_info "지원하는 설치 방법: pip, binary"
+            log_info "지원하는 설치 방법: rye, pip, binary"
             exit 1
             ;;
     esac
 else
     log_info "설치 방법을 선택하세요:"
-    log_info "1) pip를 통한 설치 (권장)"
-    log_info "2) 바이너리 직접 설치"
-    log_info "3) 자동 설치 (pip 사용)"
+    log_info "1) rye를 통한 설치 (권장)"
+    log_info "2) pip를 통한 설치"
+    log_info "3) 바이너리 직접 설치"
+    log_info "4) 자동 설치 (rye 사용)"
 
-    read -p "선택 (1-3, 기본값: 1): " install_method
+    read -p "선택 (1-4, 기본값: 1): " install_method
     install_method=${install_method:-1}  # 기본값 설정
 fi
 
 case $install_method in
-    1|3)
+    1|4)
+        log_info "rye를 통한 설치를 시작합니다..."
+        
+        # 필요한 시스템 패키지 설치
+        if [ "$EUID" -ne 0 ]; then
+            log_error "이 설치 방법은 root 권한이 필요합니다."
+            log_info "다음 명령어로 다시 실행해주세요: sudo $0"
+            exit 1
+        fi
+
+        # 필요한 패키지 설치
+        log_info "필요한 시스템 패키지를 설치합니다..."
+        apt-get update
+        apt-get install -y python3-venv python3-full
+
+        # rye 설치 확인
+        if ! command -v rye &> /dev/null; then
+            log_info "rye를 설치합니다..."
+            curl -sSf https://rye.astral.sh/get | bash
+            source ~/.bashrc
+        fi
+
+        # 가상환경 생성
+        VENV_DIR="/opt/ubuntu-raid-cli"
+        log_info "가상환경을 생성합니다: $VENV_DIR"
+        mkdir -p "$VENV_DIR"
+        cd "$VENV_DIR"
+        rye init ubuntu-raid-cli
+        rye add ubuntu-raid-cli
+        rye sync
+
+        # 실행 스크립트 생성
+        log_info "실행 스크립트를 생성합니다..."
+        cat > /usr/local/bin/raid << EOF
+#!/bin/bash
+"$VENV_DIR/.venv/bin/raid" "\$@"
+EOF
+        chmod +x /usr/local/bin/raid
+
+        log_info "설치가 완료되었습니다!"
+        log_info "이제 'raid' 명령어를 사용할 수 있습니다."
+        ;;
+    2)
         log_info "pip를 통한 설치를 시작합니다..."
         
         # 필요한 시스템 패키지 설치
@@ -105,7 +152,7 @@ EOF
         log_info "설치가 완료되었습니다!"
         log_info "이제 'raid' 명령어를 사용할 수 있습니다."
         ;;
-    2)
+    3)
         log_info "바이너리 설치를 시작합니다..."
         # root 권한 확인
         if [ "$EUID" -ne 0 ]; then
