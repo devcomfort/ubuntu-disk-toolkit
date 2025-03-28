@@ -342,31 +342,34 @@ def check_raid_device(device):
         table.add_row("사용된 디스크", raid_info.get("Used Dev Size", "알 수 없음"))
         table.add_row("상태", raid_info.get("State", "알 수 없음"))
         
-        # 디스크 상태 표시
-        active_disks = 0  # RAID 배열에서 활성 상태인 디스크 수
-        failed_disks = 0  # RAID 배열에서 실패한 디스크 수
-        spare_disks = 0   # RAID 배열에서 스페어 디스크 수
+        # 디스크 상태 정보 추출
+        active_disks = int(raid_info.get("Active Devices", 0))
+        failed_disks = int(raid_info.get("Failed Devices", 0))
+        spare_disks = int(raid_info.get("Spare Devices", 0))
         
-        for line in result.stdout.splitlines():
-            if line.strip().startswith('/dev/'):
-                if 'active' in line:
-                    active_disks += 1
-                elif 'failed' in line:
-                    failed_disks += 1
-                elif 'spare' in line:
-                    spare_disks += 1
-        
-        table.add_row("활성 디스크", str(active_disks))  # 활성 디스크 수
-        table.add_row("실패 디스크", str(failed_disks))  # 실패한 디스크 수
-        table.add_row("스페어 디스크", str(spare_disks))  # 스페어 디스크 수
+        table.add_row("활성 디스크", str(active_disks))
+        table.add_row("실패 디스크", str(failed_disks))
+        table.add_row("스페어 디스크", str(spare_disks))
         
         console.print(table)
+        
+        # RAID 레벨별 최소 디스크 수
+        min_disks = {
+            "raid0": 2,
+            "raid1": 2,
+            "raid5": 3,
+            "raid6": 4
+        }
+        
+        # RAID 레벨 확인
+        raid_level = raid_info.get("Raid Level", "").lower()
+        min_required = min_disks.get(raid_level, 2)  # 기본값 2
         
         # 경고 메시지 표시
         if failed_disks > 0:
             console.print("[red]경고: RAID 배열에 실패한 디스크가 있습니다![/red]")
-        if active_disks < 2:
-            console.print("[red]경고: RAID 배열의 활성 디스크가 부족합니다![/red]")
+        if active_disks < min_required:
+            console.print(f"[red]경고: {raid_level.upper()} RAID 배열은 최소 {min_required}개의 활성 디스크가 필요합니다![/red]")
             
     except Exception as e:
         console.print(f"[red]RAID 상태 확인 중 오류 발생: {str(e)}[/red]")
