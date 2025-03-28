@@ -24,6 +24,29 @@ class RAIDManager:
             if not Confirm.ask("계속하시겠습니까?"):
                 return False
             
+            # 디스크 상태 확인
+            for disk in disks:
+                if not self._check_disk_health(disk):
+                    if not Confirm.ask(f"[yellow]경고: {disk}의 상태가 좋지 않습니다. 계속하시겠습니까?[/yellow]"):
+                        return False
+            
+            # RAID 레벨별 최소 디스크 수 확인
+            min_disks = {
+                0: 2,  # RAID 0
+                1: 2,  # RAID 1
+                5: 3,  # RAID 5
+                6: 4   # RAID 6
+            }
+            
+            if len(disks) < min_disks[level]:
+                self.console.print(f"[red]오류: RAID {level}은 최소 {min_disks[level]}개의 디스크가 필요합니다.[/red]")
+                return False
+            
+            # 디스크 용량 확인
+            if not self._check_disk_sizes(disks):
+                if not Confirm.ask("[yellow]경고: 선택한 디스크들의 용량이 다릅니다. 계속하시겠습니까?[/yellow]"):
+                    return False
+            
             # 파티션 생성
             for disk in disks:
                 self._create_partition(disk)
@@ -165,4 +188,48 @@ class RAIDManager:
             
         except Exception as e:
             self.console.print(f"[red]마운트 포인트 변경 중 오류 발생: {str(e)}[/red]")
-            return False 
+            return False
+    
+    def _check_disk_health(self, disk: str) -> bool:
+        """디스크의 건강 상태를 확인합니다."""
+        try:
+            result = run_command(["smartctl", "-H", disk])
+            return "PASSED" in result.stdout
+        except Exception:
+            return True  # smartctl이 실패하면 기본적으로 True 반환
+    
+    def _check_disk_sizes(self, disks: List[str]) -> bool:
+        """디스크들의 용량이 동일한지 확인합니다."""
+        try:
+            sizes = []
+            for disk in disks:
+                result = run_command(["blockdev", "--getsize64", disk])
+                sizes.append(int(result.stdout.strip()))
+            
+            return len(set(sizes)) == 1
+        except Exception:
+            return False
+    
+    def recommend_raid_level(self, num_disks: int, disk_sizes: List[int]) -> int:
+        """디스크 수와 용량을 기반으로 RAID 레벨을 추천합니다."""
+        if num_disks == 2:
+            return 1  # RAID 1 추천 (미러링)
+        elif num_disks == 3:
+            return 5  # RAID 5 추천 (패리티)
+        elif num_disks >= 4:
+            if min(disk_sizes) == max(disk_sizes):
+                return 6  # RAID 6 추천 (이중 패리티)
+            else:
+                return 5  # RAID 5 추천 (패리티)
+        else:
+            return 0  # RAID 0 추천 (스트라이핑)
+    
+    def get_raid_level_description(self, level: int) -> str:
+        """RAID 레벨에 대한 설명을 반환합니다."""
+        descriptions = {
+            0: "스트라이핑 - 최대 성능, 데이터 중복 없음",
+            1: "미러링 - 최대 안정성, 50% 용량 효율",
+            5: "패리티 - 성능과 안정성의 균형, 1개 디스크 장애 허용",
+            6: "이중 패리티 - 최대 안정성, 2개 디스크 장애 허용"
+        }
+        return descriptions.get(level, "알 수 없는 RAID 레벨") 
