@@ -33,7 +33,11 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ubuntu_raid_cli"]
+editable = true
 
 # 사용자 정의 명령 추가
 [tool.rye.scripts]
 build = { call = "scripts.build_binary:main" }
+
+[tool.hatch.build.hooks.custom]
+path = "scripts/install_hooks.py"

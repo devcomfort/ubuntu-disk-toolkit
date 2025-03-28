@@ -1,6 +1,6 @@
 # Ubuntu RAID CLI
 
-Ubuntu 시스템에서 RAID 설정을 간편하게 관리하기 위한 CLI 도구입니다.
+Ubuntu 시스템에서 RAID 구성을 쉽게 관리할 수 있는 CLI 도구입니다.
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python 3.8+"/>
@@ -40,94 +40,21 @@ Ubuntu 시스템에서 RAID 설정을 간편하게 관리하기 위한 CLI 도�
 
 ## 설치 방법
 
-### 원클릭 설치 (권장)
+### 1. pip를 이용한 설치
 
 ```bash
-# 스크립트 실행 권한 부여
-chmod +x scripts/setup_all.sh
-
-# 설치 스크립트 실행 (root 권한 필요)
-sudo ./scripts/setup_all.sh
+sudo pip install git+https://github.com/devcomfort/ubuntu-raid-cli.git
 ```
 
-이 스크립트는 모든 필요한 시스템 패키지를 설치하고, Rye를 통해 프로젝트를 빌드한 후 시스템에 설치합니다.
-
-### GitHub CDN을 통한 빠른 설치
-
-다음과 같은 방법으로 설치할 수 있습니다:
-
-1. **대화형 설치** (권장):
-```bash
-curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash
-```
-
-2. **명령형 설치**:
-```bash
-# pip를 통한 설치
-curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method pip
-
-# 바이너리 설치
-curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method binary
-```
-
-3. **자동 설치** (pip 사용):
-```bash
-curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --auto
-```
-
-wget을 사용하는 경우:
-```bash
-# 대화형 설치
-wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash
-
-# 명령형 설치 (pip)
-wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method pip
-
-# 명령형 설치 (바이너리)
-wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method binary
-
-# 자동 설치
-wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --auto
-```
-
-이 방법은 GitHub CDN을 통해 최신 설치 스크립트를 다운로드하고 실행합니다. 대화형 설치를 사용하면 설치 과정에서 원하는 설치 방법을 선택할 수 있으며, 명령형 설치를 사용하면 스크립트 실행 시 설치 방법을 지정할 수 있습니다.
-
-### 독립 실행형(Standalone) 배포판 설치
-
-독립 실행형 배포판은 특별한 개발 환경 없이도 설치할 수 있는 패키지입니다:
+### 2. 소스코드에서 직접 설치
 
 ```bash
-# 배포 패키지 압축 해제
-tar -xzvf ubuntu-raid-cli-standalone.tar.gz
-
-# 설치 스크립트 실행 (root 권한 필요)
-sudo ./install.sh
+git clone https://github.com/devcomfort/ubuntu-raid-cli.git
+cd ubuntu-raid-cli
+sudo pip install .
 ```
 
-이 방법은 개발 환경 없이 바로 실행 파일을 시스템에 설치합니다.
-
-### 단계별 수동 설치
-
-시스템 패키지 설치:
-```bash
-sudo apt-get update
-sudo apt-get install -y mdadm smartmontools python3-pip python3-venv
-```
-
-Rye 설치 (Python 패키지 관리자):
-```bash
-curl -sSf https://rye.astral.sh/get | bash
-source ~/.bashrc  # 또는 쉘 재시작
-```
-
-프로젝트 빌드 및 설치:
-```bash
-# 프로젝트 루트 디렉토리에서
-chmod +x scripts/build.sh
-./scripts/build.sh
-sudo chmod +x scripts/install.sh
-sudo ./scripts/install.sh
-```
+설치가 완료되면 `raid` 명령어를 바로 사용할 수 있습니다.
 
 ## 기본 사용법
 
