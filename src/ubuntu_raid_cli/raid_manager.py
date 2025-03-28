@@ -288,9 +288,21 @@ class RAIDManager:
                 self.console.print(f"[red]오류: {device_name}의 마운트 정보를 찾을 수 없습니다.[/red]")
                 return False
             
+            # RAID 디바이스인지 확인
+            is_raid = device_name.startswith('/dev/md')
+            
             # 현재 마운트 해제
             self.console.print(f"[yellow]{device_name} 언마운트 중...[/yellow]")
             run_command(["umount", device_name])
+            
+            # RAID 디바이스인 경우 RAID 상태 확인
+            if is_raid:
+                self.console.print("[yellow]RAID 상태 확인 중...[/yellow]")
+                raid_status = self._check_raid_status(device_name)
+                if not raid_status['healthy']:
+                    self.console.print(f"[red]경고: RAID 상태가 비정상입니다: {raid_status['message']}[/red]")
+                    if not Confirm.ask("계속 진행하시겠습니까?"):
+                        return False
             
             # fstab 설정 업데이트
             self.console.print("[yellow]fstab 설정 업데이트 중...[/yellow]")
@@ -298,7 +310,11 @@ class RAIDManager:
             
             # 재마운트
             self.console.print(f"[yellow]{device_name} 재마운트 중...[/yellow]")
-            run_command(["mount", "-a"])
+            if is_raid:
+                # RAID 디바이스는 mount -a 대신 직접 마운트
+                run_command(["mount", device_name, mount_info['mountpoint']])
+            else:
+                run_command(["mount", "-a"])
             
             self.console.print("[green]재마운트가 완료되었습니다![/green]")
             return True
@@ -306,6 +322,34 @@ class RAIDManager:
         except Exception as e:
             self.console.print(f"[red]재마운트 중 오류 발생: {str(e)}[/red]")
             return False
+    
+    def _check_raid_status(self, device_name: str) -> dict:
+        """RAID 디바이스의 상태를 확인합니다."""
+        try:
+            result = run_command(["mdadm", "--detail", device_name])
+            status = {
+                'healthy': True,
+                'message': '정상'
+            }
+            
+            for line in result.stdout.split("\n"):
+                if "State" in line:
+                    state = line.split(":")[1].strip()
+                    if "clean" not in state.lower():
+                        status['healthy'] = False
+                        status['message'] = f"RAID 상태: {state}"
+                elif "Failed Devices" in line:
+                    failed = int(line.split(":")[1].strip())
+                    if failed > 0:
+                        status['healthy'] = False
+                        status['message'] = f"실패한 디스크: {failed}개"
+            
+            return status
+        except Exception as e:
+            return {
+                'healthy': False,
+                'message': f"상태 확인 실패: {str(e)}"
+            }
     
     def _get_mount_info(self, device_name: str) -> Optional[dict]:
         """디바이스의 마운트 정보를 반환합니다."""
