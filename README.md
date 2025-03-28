@@ -152,6 +152,11 @@ raid mount-device
   - RAID 6: 4개 이상 (이중 패리티, 2개 디스크 장애 허용)
 - **하드웨어 호환성**: 모든 디스크가 SMART 기능을 지원하지 않을 수 있습니다.
 - **경고 사항**: 비정상적인 SMART 값이 발견되면 즉시 데이터를 백업하고 디스크 교체를 고려하세요.
+- **시스템 안정성**:
+  - RAID 디스크는 자동으로 fstab에 안정적인 옵션으로 설정됩니다.
+  - RAID 1, 5, 6: `nofail,x-systemd.device-timeout=5` 옵션 적용
+  - RAID 0: `nofail,x-systemd.device-timeout=3` 옵션 적용
+  - fstab 설정 전 자동으로 백업 파일이 생성됩니다.
 
 ---
 

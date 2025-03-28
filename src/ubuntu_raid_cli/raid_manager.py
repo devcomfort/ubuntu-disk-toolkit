@@ -107,14 +107,59 @@ class RAIDManager:
     
     def _update_fstab(self, device_name: str, mount_point: str) -> None:
         """fstab에 RAID 마운트 설정을 추가합니다."""
-        # UUID 가져오기
-        result = run_command(["blkid", "-s", "UUID", "-o", "value", device_name])
-        uuid = result.stdout.strip()
-        
-        # fstab에 추가
-        fstab_entry = f"UUID={uuid} {mount_point} ext4 defaults 0 0\n"
-        with open("/etc/fstab", "a") as f:
-            f.write(fstab_entry)
+        try:
+            # UUID 가져오기
+            result = run_command(["blkid", "-s", "UUID", "-o", "value", device_name])
+            uuid = result.stdout.strip()
+            
+            # RAID 레벨 확인
+            raid_level = self._get_raid_level(device_name)
+            
+            # 기본 마운트 옵션 설정
+            mount_options = "defaults"
+            
+            # RAID 레벨에 따른 추가 옵션
+            if raid_level in [1, 5, 6]:  # RAID 1, 5, 6의 경우
+                mount_options += ",nofail,x-systemd.device-timeout=5"
+            else:  # RAID 0의 경우
+                mount_options += ",nofail,x-systemd.device-timeout=3"
+            
+            # fstab에 추가
+            fstab_entry = f"UUID={uuid} {mount_point} ext4 {mount_options} 0 0\n"
+            
+            # fstab 백업
+            backup_file = "/etc/fstab.backup"
+            run_command(["cp", "/etc/fstab", backup_file])
+            
+            # fstab에 추가
+            with open("/etc/fstab", "a") as f:
+                f.write(fstab_entry)
+            
+            self.console.print("[green]fstab 설정이 업데이트되었습니다.[/green]")
+            self.console.print(f"[yellow]백업 파일: {backup_file}[/yellow]")
+            
+        except Exception as e:
+            self.console.print(f"[red]fstab 설정 중 오류 발생: {str(e)}[/red]")
+            raise
+    
+    def _get_raid_level(self, device_name: str) -> int:
+        """RAID 디바이스의 레벨을 반환합니다."""
+        try:
+            result = run_command(["mdadm", "--detail", device_name])
+            for line in result.stdout.split("\n"):
+                if "Raid Level" in line:
+                    level = line.split(":")[1].strip().lower()
+                    if "raid0" in level:
+                        return 0
+                    elif "raid1" in level:
+                        return 1
+                    elif "raid5" in level:
+                        return 5
+                    elif "raid6" in level:
+                        return 6
+            return 0  # 기본값
+        except Exception:
+            return 0  # 오류 시 기본값
     
     def _update_system(self) -> None:
         """시스템 설정을 업데이트합니다."""
