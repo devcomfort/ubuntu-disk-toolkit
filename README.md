@@ -52,6 +52,20 @@ sudo ./scripts/setup_all.sh
 
 이 스크립트는 모든 필요한 시스템 패키지를 설치하고, Rye를 통해 프로젝트를 빌드한 후 시스템에 설치합니다.
 
+### GitHub CDN을 통한 빠른 설치
+
+```bash
+# 설치 스크립트 다운로드 및 실행
+curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash
+```
+
+또는 wget을 사용하는 경우:
+```bash
+wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash
+```
+
+이 방법은 GitHub CDN을 통해 최신 설치 스크립트를 다운로드하고 실행합니다. 설치 과정에서 pip를 통한 설치와 바이너리 설치 중 선택할 수 있습니다.
+
 ### 독립 실행형(Standalone) 배포판 설치
 
 독립 실행형 배포판은 특별한 개발 환경 없이도 설치할 수 있는 패키지입니다:
@@ -177,7 +191,7 @@ raid mount-device
 
 ```bash
 # 프로젝트 클론
-git clone https://github.com/your-username/ubuntu-raid-cli.git
+git clone https://github.com/devcomfort/ubuntu-raid-cli.git
 cd ubuntu-raid-cli
 
 # Rye로 개발 환경 구성
