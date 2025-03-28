@@ -63,14 +63,14 @@ curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/script
 
 2. **명령형 설치**:
 ```bash
-# pip를 통한 설치
+# pip를 통한 설치 (가상환경 사용)
 curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method pip
 
 # 바이너리 설치
 curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method binary
 ```
 
-3. **자동 설치** (pip 사용):
+3. **자동 설치** (pip 사용, 가상환경):
 ```bash
 curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --auto
 ```
@@ -91,6 +91,8 @@ wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scri
 ```
 
 이 방법은 GitHub CDN을 통해 최신 설치 스크립트를 다운로드하고 실행합니다. 대화형 설치를 사용하면 설치 과정에서 원하는 설치 방법을 선택할 수 있으며, 명령형 설치를 사용하면 스크립트 실행 시 설치 방법을 지정할 수 있습니다.
+
+pip를 통한 설치의 경우, 시스템 Python 환경을 보호하기 위해 `/opt/ubuntu-raid-cli` 디렉토리에 가상환경을 생성하고 그 안에 패키지를 설치합니다. 실행 스크립트는 자동으로 이 가상환경을 사용하도록 설정됩니다.
 
 ### 독립 실행형(Standalone) 배포판 설치
 
