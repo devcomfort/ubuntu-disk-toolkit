@@ -7,6 +7,7 @@ dependencies = [
     "click>=8.1.8",
     "rich>=13.9.4",
     "psutil>=5.9.0",  # 디스크 정보 확인용
+    "pyinstaller>=6.5.0",  # 바이너리 빌드용
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -32,3 +33,7 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ubuntu_raid_cli"]
+
+# 사용자 정의 명령 추가
+[tool.rye.scripts]
+build = { call = "scripts.build_binary:main" }

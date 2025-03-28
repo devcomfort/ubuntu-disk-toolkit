@@ -10,15 +10,27 @@
 #   universal: false
 
 -e file:.
+altgraph==0.17.4
+    # via pyinstaller
 click==8.1.8
     # via ubuntu-raid-cli
 markdown-it-py==3.0.0
     # via rich
 mdurl==0.1.2
     # via markdown-it-py
+packaging==24.2
+    # via pyinstaller
+    # via pyinstaller-hooks-contrib
 psutil==7.0.0
     # via ubuntu-raid-cli
 pygments==2.19.1
     # via rich
+pyinstaller==6.12.0
+    # via ubuntu-raid-cli
+pyinstaller-hooks-contrib==2025.2
+    # via pyinstaller
 rich==13.9.4
     # via ubuntu-raid-cli
+setuptools==78.1.0
+    # via pyinstaller
+    # via pyinstaller-hooks-contrib

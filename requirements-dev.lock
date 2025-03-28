@@ -10,6 +10,8 @@
 #   universal: false
 
 -e file:.
+altgraph==0.17.4
+    # via pyinstaller
 black==25.1.0
 click==8.1.8
     # via black
@@ -27,6 +29,8 @@ mypy-extensions==1.0.0
     # via mypy
 packaging==24.2
     # via black
+    # via pyinstaller
+    # via pyinstaller-hooks-contrib
     # via pytest
 pathspec==0.12.1
     # via black
@@ -38,8 +42,15 @@ psutil==7.0.0
     # via ubuntu-raid-cli
 pygments==2.19.1
     # via rich
+pyinstaller==6.12.0
+    # via ubuntu-raid-cli
+pyinstaller-hooks-contrib==2025.2
+    # via pyinstaller
 pytest==8.3.5
 rich==13.9.4
     # via ubuntu-raid-cli
+setuptools==78.1.0
+    # via pyinstaller
+    # via pyinstaller-hooks-contrib
 typing-extensions==4.13.0
     # via mypy
