@@ -575,5 +575,58 @@ def unmount_device():
     except Exception as e:
         console.print(f"[red]오류 발생: {str(e)}[/red]")
 
+@cli.command()
+def update():
+    """ubuntu-raid-cli를 최신 버전으로 업데이트합니다."""
+    try:
+        console.print("[yellow]ubuntu-raid-cli 업데이트를 시작합니다...[/yellow]")
+        
+        # 현재 설치된 버전 확인
+        current_version = subprocess.run(
+            ['pip', 'show', 'ubuntu-raid-cli'],
+            capture_output=True,
+            text=True
+        ).stdout.strip()
+        
+        if not current_version:
+            console.print("[red]ubuntu-raid-cli가 설치되어 있지 않습니다.[/red]")
+            return
+            
+        # 현재 버전 출력
+        for line in current_version.split('\n'):
+            if line.startswith('Version:'):
+                current_version = line.split(':')[1].strip()
+                console.print(f"현재 버전: {current_version}")
+                break
+        
+        # 최신 버전 설치
+        console.print("\n최신 버전을 설치합니다...")
+        result = subprocess.run(
+            ['sudo', 'pip', 'install', '--upgrade', 'git+https://github.com/devcomfort/ubuntu-raid-cli.git'],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            console.print("[green]업데이트가 완료되었습니다![/green]")
+            
+            # 업데이트된 버전 확인
+            new_version = subprocess.run(
+                ['pip', 'show', 'ubuntu-raid-cli'],
+                capture_output=True,
+                text=True
+            ).stdout.strip()
+            
+            for line in new_version.split('\n'):
+                if line.startswith('Version:'):
+                    new_version = line.split(':')[1].strip()
+                    console.print(f"업데이트된 버전: {new_version}")
+                    break
+        else:
+            console.print(f"[red]업데이트 중 오류가 발생했습니다: {result.stderr}[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]업데이트 중 오류 발생: {str(e)}[/red]")
+
 if __name__ == '__main__':
     cli() 
