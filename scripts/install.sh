@@ -21,16 +21,55 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# 설치 방법 파싱
+INSTALL_METHOD=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --method)
+            INSTALL_METHOD="$2"
+            shift 2
+            ;;
+        --auto)
+            INSTALL_METHOD="pip"
+            shift
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
 # 설치 방법 선택
 log_info "Ubuntu RAID CLI 설치 프로그램"
-log_info "설치 방법을 선택하세요:"
-log_info "1) pip를 통한 설치 (권장)"
-log_info "2) 바이너리 직접 설치"
 
-read -p "선택 (1 또는 2): " install_method
+if [ -n "$INSTALL_METHOD" ]; then
+    case $INSTALL_METHOD in
+        pip)
+            log_info "명령형 설치: pip를 통한 설치를 진행합니다."
+            install_method=1
+            ;;
+        binary)
+            log_info "명령형 설치: 바이너리 설치를 진행합니다."
+            install_method=2
+            ;;
+        *)
+            log_error "지원하지 않는 설치 방법입니다: $INSTALL_METHOD"
+            log_info "지원하는 설치 방법: pip, binary"
+            exit 1
+            ;;
+    esac
+else
+    log_info "설치 방법을 선택하세요:"
+    log_info "1) pip를 통한 설치 (권장)"
+    log_info "2) 바이너리 직접 설치"
+    log_info "3) 자동 설치 (pip 사용)"
+
+    read -p "선택 (1-3, 기본값: 1): " install_method
+    install_method=${install_method:-1}  # 기본값 설정
+fi
 
 case $install_method in
-    1)
+    1|3)
         log_info "pip를 통한 설치를 시작합니다..."
         if command -v pip3 &> /dev/null; then
             pip3 install ubuntu-raid-cli

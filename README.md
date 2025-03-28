@@ -54,17 +54,43 @@ sudo ./scripts/setup_all.sh
 
 ### GitHub CDN을 통한 빠른 설치
 
+다음과 같은 방법으로 설치할 수 있습니다:
+
+1. **대화형 설치** (권장):
 ```bash
-# 설치 스크립트 다운로드 및 실행
 curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash
 ```
 
-또는 wget을 사용하는 경우:
+2. **명령형 설치**:
 ```bash
-wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash
+# pip를 통한 설치
+curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method pip
+
+# 바이너리 설치
+curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method binary
 ```
 
-이 방법은 GitHub CDN을 통해 최신 설치 스크립트를 다운로드하고 실행합니다. 설치 과정에서 pip를 통한 설치와 바이너리 설치 중 선택할 수 있습니다.
+3. **자동 설치** (pip 사용):
+```bash
+curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --auto
+```
+
+wget을 사용하는 경우:
+```bash
+# 대화형 설치
+wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash
+
+# 명령형 설치 (pip)
+wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method pip
+
+# 명령형 설치 (바이너리)
+wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method binary
+
+# 자동 설치
+wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --auto
+```
+
+이 방법은 GitHub CDN을 통해 최신 설치 스크립트를 다운로드하고 실행합니다. 대화형 설치를 사용하면 설치 과정에서 원하는 설치 방법을 선택할 수 있으며, 명령형 설치를 사용하면 스크립트 실행 시 설치 방법을 지정할 수 있습니다.
 
 ### 독립 실행형(Standalone) 배포판 설치
 
