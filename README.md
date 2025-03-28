@@ -56,6 +56,14 @@ sudo pip install .
 
 설치가 완료되면 `raid` 명령어를 바로 사용할 수 있습니다.
 
+### 삭제 방법
+
+패키지를 삭제하려면 다음 명령어를 실행하세요:
+
+```bash
+sudo pip uninstall ubuntu-raid-cli
+```
+
 ## 기본 사용법
 
 설치 후 `raid` 명령어를 사용하여 도구를 실행할 수 있습니다:
