@@ -576,6 +576,33 @@ def unmount_device():
         console.print(f"[red]오류 발생: {str(e)}[/red]")
 
 @cli.command()
+def remount_device():
+    """선택한 디스크 또는 RAID 디바이스를 재마운트합니다."""
+    devices = get_all_storage_devices()
+    mounted_devices = [d for d in devices if d['mountpoint']]
+    
+    if not mounted_devices:
+        console.print("[yellow]재마운트 가능한 장치가 없습니다.[/yellow]")
+        return
+    
+    # 장치 선택
+    choice = display_device_selection(mounted_devices, "재마운트할 장치 선택")
+    selected_device = mounted_devices[int(choice) - 1]
+    
+    try:
+        # RAID 매니저 초기화
+        raid_manager = RAIDManager()
+        
+        # 재마운트 실행
+        if raid_manager.remount_device(selected_device['device']):
+            console.print(f"[green]장치가 성공적으로 재마운트되었습니다.[/green]")
+        else:
+            console.print(f"[red]장치 재마운트에 실패했습니다.[/red]")
+        
+    except Exception as e:
+        console.print(f"[red]오류 발생: {str(e)}[/red]")
+
+@cli.command()
 def update():
     """ubuntu-raid-cli를 최신 버전으로 업데이트합니다."""
     try:

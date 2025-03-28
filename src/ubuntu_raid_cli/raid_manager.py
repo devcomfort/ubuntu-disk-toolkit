@@ -277,4 +277,50 @@ class RAIDManager:
             5: "패리티 - 성능과 안정성의 균형, 1개 디스크 장애 허용",
             6: "이중 패리티 - 최대 안정성, 2개 디스크 장애 허용"
         }
-        return descriptions.get(level, "알 수 없는 RAID 레벨") 
+        return descriptions.get(level, "알 수 없는 RAID 레벨")
+    
+    def remount_device(self, device_name: str) -> bool:
+        """디바이스를 재마운트합니다."""
+        try:
+            # 현재 마운트 정보 확인
+            mount_info = self._get_mount_info(device_name)
+            if not mount_info:
+                self.console.print(f"[red]오류: {device_name}의 마운트 정보를 찾을 수 없습니다.[/red]")
+                return False
+            
+            # 현재 마운트 해제
+            self.console.print(f"[yellow]{device_name} 언마운트 중...[/yellow]")
+            run_command(["umount", device_name])
+            
+            # fstab 설정 업데이트
+            self.console.print("[yellow]fstab 설정 업데이트 중...[/yellow]")
+            self._update_fstab(device_name, mount_info['mountpoint'])
+            
+            # 재마운트
+            self.console.print(f"[yellow]{device_name} 재마운트 중...[/yellow]")
+            run_command(["mount", "-a"])
+            
+            self.console.print("[green]재마운트가 완료되었습니다![/green]")
+            return True
+            
+        except Exception as e:
+            self.console.print(f"[red]재마운트 중 오류 발생: {str(e)}[/red]")
+            return False
+    
+    def _get_mount_info(self, device_name: str) -> Optional[dict]:
+        """디바이스의 마운트 정보를 반환합니다."""
+        try:
+            # mount 명령어로 현재 마운트 정보 확인
+            result = run_command(["mount"])
+            for line in result.stdout.split("\n"):
+                if device_name in line:
+                    parts = line.split()
+                    return {
+                        "device": parts[0],
+                        "mountpoint": parts[2],
+                        "fstype": parts[4].strip("()"),
+                        "options": parts[5].strip("()").split(",")
+                    }
+            return None
+        except Exception:
+            return None 
