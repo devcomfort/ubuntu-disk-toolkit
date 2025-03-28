@@ -92,7 +92,7 @@ case $install_method in
         # rye 설치 확인
         if ! command -v rye &> /dev/null; then
             log_info "rye를 설치합니다..."
-            curl -sSf https://rye.astral.sh/get | bash
+            curl -sSf https://rye.astral.sh/get | RYE_INSTALL_OPTION="--yes" bash
             # rye 설치 후 PATH에 추가
             export PATH="$HOME/.local/bin:$PATH"
             # rye가 설치되었는지 다시 확인

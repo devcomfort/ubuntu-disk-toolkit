@@ -63,9 +63,6 @@ curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/script
 
 2. **명령형 설치**:
 ```bash
-# rye를 통한 설치 (권장)
-curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method rye
-
 # pip를 통한 설치
 curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method pip
 
@@ -73,7 +70,7 @@ curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/script
 curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method binary
 ```
 
-3. **자동 설치** (rye 사용):
+3. **자동 설치** (pip 사용):
 ```bash
 curl -s https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --auto
 ```
@@ -82,9 +79,6 @@ wget을 사용하는 경우:
 ```bash
 # 대화형 설치
 wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash
-
-# 명령형 설치 (rye)
-wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method rye
 
 # 명령형 설치 (pip)
 wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scripts/install.sh | sudo bash -s -- --method pip
@@ -97,8 +91,6 @@ wget -qO- https://raw.githubusercontent.com/devcomfort/ubuntu-raid-cli/main/scri
 ```
 
 이 방법은 GitHub CDN을 통해 최신 설치 스크립트를 다운로드하고 실행합니다. 대화형 설치를 사용하면 설치 과정에서 원하는 설치 방법을 선택할 수 있으며, 명령형 설치를 사용하면 스크립트 실행 시 설치 방법을 지정할 수 있습니다.
-
-rye를 통한 설치가 권장되며, 이는 개발 환경과 동일한 패키지 관리 방식을 사용합니다. rye가 설치되어 있지 않은 경우 자동으로 설치됩니다.
 
 ### 독립 실행형(Standalone) 배포판 설치
 
