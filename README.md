@@ -285,7 +285,7 @@ mypy src/
 
 이미 존재하는 CLI 도구들을 사용하도록 만든 도구이지만 혹여나 문제가 발생하는 경우 버그픽스를 위해 관련 정보를 공유해주시기 바랍니다.
 
-이메일: <your-email@example.com>
+이메일: im@devcomfort.me
 
 ## 라이선스
 
