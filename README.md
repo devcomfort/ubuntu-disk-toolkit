@@ -8,11 +8,9 @@ Ubuntu 시스템에서 RAID 구성을 쉽게 관리할 수 있는 CLI 도구입�
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT"/>
 </p>
 
-> ⚠️ **주의사항**
-> 
-> **Ubuntu RAID CLI**는 이미 존재하는 mdadm 및 기타 도구를 사용하여 필요한 디스크 레이드, 초기화, 검사 등을 대리하여 수행하는 CLI 도구입니다. 이미 존재하는 CLI 도구들을 사용하도록 만든 도구이지만 **혹여나 문제가 발생하는 경우 데이터 손실이 발생할 수 있으니 주의하시기 바랍니다**. 버그 발견 시 아래 연락처로 관련 정보를 공유해주시면 신속히 대응하겠습니다.
-> 
-> 📧 **버그 리포트**: im@devcomfort.me
+**Ubuntu RAID CLI**는 이미 존재하는 mdadm 및 기타 도구를 사용하여 필요한 디스크 레이드, 초기화, 검사 등을 대리하여 수행하는 CLI 도구입니다. 이미 존재하는 CLI 도구들을 사용하도록 만든 도구이지만 혹여나 문제가 발생하는 경우 버그픽스를 위해 관련 정보를 공유해주시기 바랍니다.
+
+이메일: im@devcomfort.me
 
 ## 목차
 
@@ -32,7 +30,7 @@ Ubuntu 시스템에서 RAID 구성을 쉽게 관리할 수 있는 CLI 도구입�
   - [테스트](#테스트)
   - [기여 방법](#기여-방법)
 - [문제 해결](#문제-해결)
-- [피드백 및 버그 리포트](#피드백-및-버그-리포트)
+- [지원 및 피드백](#지원-및-피드백)
 - [라이선스](#라이선스)
 
 ---
@@ -271,21 +269,95 @@ mypy src/
 
 # 문제 해결
 
-일반적인 문제와 해결 방법:
+## 일반적인 문제와 해결 방법
 
-- **RAID 생성 실패**: 디스크가 이미 사용 중인지 확인하세요. `raid list-disks -v` 명령으로 자세한 디스크 정보를 확인할 수 있습니다.
-- **마운트 오류**: 파일 시스템이 올바르게 포맷되었는지 확인하세요. `raid format-device` 명령으로 다시 포맷해 볼 수 있습니다.
-- **권한 문제**: 대부분의 명령은 `sudo`로 실행해야 합니다.
+### RAID 생성 실패
+- **원인**: 디스크가 이미 다른 용도로 사용 중이거나, 파티션 테이블에 문제가 있을 수 있습니다.
+- **해결**: 
+  ```bash
+  # 자세한 디스크 정보 확인
+  raid list-disks -v
+  
+  # 기존 파티션 및 RAID 정보 제거
+  sudo wipefs -a /dev/sdX
+  ```
 
-상세한 문제 해결 가이드는 [Wiki 페이지](https://github.com/devcomfort/ubuntu-raid-cli/wiki/Troubleshooting)를 참조하세요.
+### 마운트 오류
+- **원인**: 파일 시스템이 올바르게 포맷되지 않았거나, 마운트 포인트 디렉토리가 없는 경우입니다.
+- **해결**:
+  ```bash
+  # 장치 다시 포맷
+  raid format-device --device /dev/mdX --filesystem ext4
+  
+  # 마운트 포인트 수동 생성
+  sudo mkdir -p /mnt/raidX
+  ```
 
-## 피드백 및 버그 리포트
+### 부팅 시 마운트 실패
+- **원인**: fstab 설정이 올바르지 않거나, 디바이스가 부팅 시점에 준비되지 않은 경우입니다.
+- **해결**:
+  ```bash
+  # fstab 설정 확인 및 재마운트
+  raid remount-device --device /dev/mdX --mount /mnt/raidX
+  ```
 
-버그 발견이나 개선 요청은 [GitHub 이슈](https://github.com/devcomfort/ubuntu-raid-cli/issues)를 통해 제출해 주세요.
+### 권한 문제
+- **원인**: 대부분의 RAID 관련 작업은 root 권한이 필요합니다.
+- **해결**: 명령어 앞에 `sudo`를 붙여 실행하세요.
 
-이미 존재하는 CLI 도구들을 사용하도록 만든 도구이지만 혹여나 문제가 발생하는 경우 버그픽스를 위해 관련 정보를 공유해주시기 바랍니다.
+## 진단 명령어
 
-이메일: im@devcomfort.me
+문제 진단을 위한 유용한 명령어들:
+
+```bash
+# RAID 상태 확인
+cat /proc/mdstat
+sudo mdadm --detail /dev/mdX
+
+# 디스크 상태 확인
+sudo smartctl -a /dev/sdX
+
+# 시스템 로그 확인
+sudo journalctl -u mdmonitor
+```
+
+## 오류 코드
+
+자주 발생하는 오류 코드와 의미:
+
+| 코드 | 설명 | 해결 방법 |
+|------|------|----------|
+| E001 | 디스크 접근 권한 부족 | sudo로 실행 |
+| E002 | 지원되지 않는 RAID 레벨 | 올바른 RAID 레벨 지정 |
+| E003 | 디스크 수 부족 | 해당 RAID 레벨에 필요한 최소 디스크 수 확인 |
+| E004 | 마운트 포인트 문제 | 디렉토리 존재 여부 및 권한 확인 |
+
+---
+
+# 지원 및 피드백
+
+## 도움 받기
+
+문제가 발생하거나 질문이 있는 경우 다음 방법으로 도움을 받을 수 있습니다:
+
+1. **GitHub 이슈**: [이슈 페이지](https://github.com/devcomfort/ubuntu-raid-cli/issues)에서 새 이슈를 생성하세요.
+2. **이메일**: 심각한 버그나 보안 문제는 직접 이메일(im@devcomfort.me)로 연락주세요.
+
+## 기능 요청
+
+새로운 기능을 제안하고 싶다면 GitHub 이슈를 통해 기능 요청을 제출해 주세요. 기능 요청 시 다음 정보를 포함하면 도움이 됩니다:
+
+- 기능에 대한 자세한 설명
+- 사용 사례 및 예시
+- 관련 참고 자료나 문서
+
+## RAID 관련 추가 자료
+
+RAID 기술과 mdadm 사용법에 대한 더 자세한 정보는 다음 자료를 참고하세요:
+
+- [Linux RAID Wiki](https://raid.wiki.kernel.org/)
+- [Ubuntu Server 가이드 - RAID](https://ubuntu.com/server/docs/devices-storage-raid)
+- [mdadm 매뉴얼](https://man7.org/linux/man-pages/man8/mdadm.8.html)
 
 ## 라이선스
 
