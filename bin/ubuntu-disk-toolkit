@@ -13,7 +13,11 @@ DESCRIPTION="Ubuntu Storage & Disk Management Toolkit"
 
 # 경로 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
+if [[ -f "$SCRIPT_DIR/../lib/common.sh" ]]; then
+    LIB_DIR="$SCRIPT_DIR/../lib"
+else
+    LIB_DIR="/usr/local/lib/ubuntu-disk-toolkit"
+fi
 
 # 공통 라이브러리 로드
 source "$LIB_DIR/common.sh"
