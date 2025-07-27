@@ -421,31 +421,29 @@ verify_installation() {
 show_completion_message() {
     print_header "설치 완료"
     
-    cat << EOF
-
-${GREEN}Ubuntu RAID CLI가 성공적으로 설치되었습니다!${NC}
-
-사용법:
-  ubuntu-disk-toolkit --help          도움말 보기
-  ubuntu-disk-toolkit list-disks      디스크 목록 확인
-  check-disk-health               시스템 진단 실행
-
-설치 위치:
-  실행 파일: $BIN_DIR
-  라이브러리: $LIB_DIR  
-  설정 파일: $CONFIG_DIR
-  로그 파일: /var/log/ubuntu-disk-toolkit.log
-
-시스템 서비스:
-  sudo systemctl status ubuntu-raid-check.timer
-
-예시:
-  ubuntu-disk-toolkit list-disks
-  ubuntu-disk-toolkit setup-raid --level 1 --disks /dev/sda,/dev/sdb
-  check-disk-health
-
-EOF
-
+    echo ""
+    echo -e "${GREEN}🎉 Ubuntu RAID CLI가 성공적으로 설치되었습니다!${NC}"
+    echo ""
+    echo "사용법:"
+    echo "  ubuntu-disk-toolkit --help          도움말 보기"
+    echo "  ubuntu-disk-toolkit list-disks      디스크 목록 확인"
+    echo "  check-disk-health               시스템 진단 실행"
+    echo ""
+    echo "설치 위치:"
+    echo "  실행 파일: $BIN_DIR"
+    echo "  라이브러리: $LIB_DIR"
+    echo "  설정 파일: $CONFIG_DIR"
+    echo "  로그 파일: /var/log/ubuntu-disk-toolkit.log"
+    echo ""
+    echo "시스템 서비스:"
+    echo "  sudo systemctl status ubuntu-raid-check.timer"
+    echo ""
+    echo "예시:"
+    echo "  ubuntu-disk-toolkit list-disks"
+    echo "  ubuntu-disk-toolkit setup-raid --level 1 --disks /dev/sda,/dev/sdb"
+    echo "  check-disk-health"
+    echo ""
+    
     print_info "문제가 발생하면 로그 파일을 확인하세요: /var/log/ubuntu-disk-toolkit.log"
 }
 
