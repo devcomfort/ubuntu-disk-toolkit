@@ -26,6 +26,48 @@ SYSTEMD_DIR="/etc/systemd/system"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
+# 전역 변수
+FORCE_YES=false
+
+# ===================================================================================
+# 인자 파싱
+# ===================================================================================
+
+parse_arguments() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -y|--yes)
+                FORCE_YES=true
+                shift
+                ;;
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            *)
+                echo "알 수 없는 옵션: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
+
+show_help() {
+    echo "Ubuntu Disk Toolkit 설치 스크립트"
+    echo
+    echo "사용법: $0 [옵션]"
+    echo
+    echo "옵션:"
+    echo "  -y, --yes     모든 확인 질문에 자동으로 yes 응답"
+    echo "  -h, --help    이 도움말 표시"
+    echo
+    echo "예시:"
+    echo "  $0                # 인터랙티브 설치"
+    echo "  $0 -y             # 자동 설치 (CI/CD용)"
+    echo "  sudo $0 --yes     # 자동 설치 (관리자 권한)"
+}
+
 # ===================================================================================
 # 유틸리티 함수
 # ===================================================================================
@@ -54,7 +96,20 @@ print_info() {
 
 confirm_action() {
     local prompt="$1"
+    local default_yes="${2:-false}"
     local response
+    
+    # Force yes 모드인 경우 자동으로 yes 반환
+    if [[ "$FORCE_YES" == "true" ]]; then
+        echo -e "${prompt} [y/N]: ${GREEN}y (자동)${NC}"
+        return 0
+    fi
+    
+    # Default yes인 경우 (--yes 모드에서 한 번 동의한 후)
+    if [[ "$default_yes" == "true" ]]; then
+        echo -e "${prompt} [Y/n]: ${GREEN}y (이전 동의)${NC}"
+        return 0
+    fi
     
     while true; do
         read -r -p "${prompt} [y/N]: " response
@@ -399,6 +454,9 @@ EOF
 # ===================================================================================
 
 main() {
+    # 인자 파싱
+    parse_arguments "$@"
+    
     print_header "Ubuntu RAID CLI 설치 시작"
     
     # 설치 전 검사
@@ -409,6 +467,12 @@ main() {
     if ! confirm_action "Ubuntu RAID CLI를 설치하시겠습니까?"; then
         print_info "설치가 취소되었습니다."
         exit 0
+    fi
+    
+    # 한 번 동의했으므로 이후 단계는 자동 진행
+    if [[ "$FORCE_YES" != "true" ]]; then
+        FORCE_YES=true
+        print_info "✅ 설치 진행 중... 나머지 단계는 자동으로 진행됩니다."
     fi
     
     # 설치 실행

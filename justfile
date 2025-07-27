@@ -17,16 +17,22 @@ default:
 # =============================================================================
 
 # 개발 환경 초기 설정
-setup:
-    @echo "🚀 Ubuntu Disk Toolkit 개발 환경 설정 중..."
-    @just install-deps
-    @just permissions
-    @echo "✅ 개발 환경 설정 완료!"
+setup *args='':
+    #!/bin/bash
+    echo "🚀 Ubuntu Disk Toolkit 개발 환경 설정 중..."
+    if [[ "{{args}}" == *"-y"* ]] || [[ "{{args}}" == *"--yes"* ]]; then
+        echo "📦 자동 설정 모드로 진행합니다..."
+        just install-deps -y
+    else
+        just install-deps
+    fi
+    just permissions
+    echo "✅ 개발 환경 설정 완료!"
 
 # 시스템 의존성 설치
-install-deps:
+install-deps *args='':
     @echo "📦 시스템 의존성 설치 중..."
-    @./{{install_dir}}/install-deps.sh
+    @./{{install_dir}}/install-deps.sh {{args}}
 
 # 스크립트 실행 권한 설정
 permissions:
@@ -116,10 +122,16 @@ demo:
 # =============================================================================
 
 # 프로덕션 설치
-install:
+install *args='':
     @echo "🏗️ 시스템 설치 중..."
-    @sudo ./{{install_dir}}/install.sh
+    @sudo ./{{install_dir}}/install.sh {{args}}
     @echo "✅ 설치 완료"
+
+# 프로덕션 제거
+uninstall *args='':
+    @echo "🗑️ 시스템 제거 중..."
+    @sudo ./{{install_dir}}/uninstall.sh {{args}}
+    @echo "✅ 제거 완료"
 
 # =============================================================================
 # 🧹 정리
@@ -150,10 +162,12 @@ status:
     @echo "💾 크기: $(du -sh . | cut -f1)"
     @echo ""
     @echo "🚀 개발 가이드:"
-    @echo "  just setup    # 개발 환경 설정"
-    @echo "  just test     # 테스트 실행"  
-    @echo "  just lint     # 코드 검사"
-    @echo "  just demo     # 기능 데모"
+    @echo "  just setup       # 개발 환경 설정"
+    @echo "  just setup -y    # 자동 설정 (CI/CD용)"
+    @echo "  just test        # 테스트 실행"  
+    @echo "  just lint        # 코드 검사"
+    @echo "  just install -y  # 자동 설치"
+    @echo "  just demo        # 기능 데모"
 
 # =============================================================================
 # 🚨 트러블슈팅

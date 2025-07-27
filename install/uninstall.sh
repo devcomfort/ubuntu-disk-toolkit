@@ -19,6 +19,10 @@ CONFIG_DIR="/etc/ubuntu-disk-toolkit"
 LOG_DIR="/var/log"
 SYSTEMD_DIR="/etc/systemd/system"
 
+# 전역 변수
+FORCE_YES=false
+
+# ===================================================================================
 # 로그 함수들
 print_header() {
     echo -e "\n${BLUE}=======================================================================${NC}"
@@ -56,6 +60,7 @@ uninstall.sh - Ubuntu Disk Toolkit 제거
   --keep-logs      로그 파일 보존
   --dry-run        실제 제거하지 않고 확인만
   --force          확인 없이 강제 제거
+  -y, --yes        모든 확인 질문에 자동으로 yes 응답
   -h, --help       도움말 표시
 
 주의:
@@ -67,6 +72,14 @@ EOF
 # 사용자 확인
 confirm_action() {
     local message="$1"
+    
+    # Force yes 모드인 경우 자동으로 yes 반환
+    if [[ "$FORCE_YES" == "true" ]]; then
+        echo -e "${YELLOW}⚠️  $message${NC}"
+        echo -e "계속하시겠습니까? [y/N]: ${GREEN}y (자동)${NC}"
+        return 0
+    fi
+    
     echo -e "${YELLOW}⚠️  $message${NC}"
     read -p "계속하시겠습니까? [y/N]: " -n 1 -r
     echo
@@ -317,6 +330,10 @@ main() {
                 ;;
             --force)
                 force=true
+                shift
+                ;;
+            -y|--yes)
+                FORCE_YES=true
                 shift
                 ;;
             -h|--help)

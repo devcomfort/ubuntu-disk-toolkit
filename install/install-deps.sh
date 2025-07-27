@@ -50,6 +50,7 @@ install-deps.sh - Ubuntu Disk Toolkit 의존성 설치
   --minimal       최소 의존성만 설치
   --dev           개발용 의존성 포함
   --quiet         최소 출력
+  -y, --yes       모든 확인 질문에 자동으로 yes 응답
   -h, --help      도움말 표시
 
 예시:
@@ -291,6 +292,7 @@ main() {
     local minimal=false
     local dev_mode=false
     local quiet=false
+    local force_yes=false
     
     # 옵션 파싱
     while [[ $# -gt 0 ]]; do
@@ -309,6 +311,10 @@ main() {
                 ;;
             --quiet)
                 quiet=true
+                shift
+                ;;
+            -y|--yes)
+                force_yes=true
                 shift
                 ;;
             -h|--help)
