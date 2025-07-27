@@ -16,10 +16,10 @@ NC='\033[0m'
 # 설정
 INSTALL_PREFIX="/usr/local"
 BIN_DIR="$INSTALL_PREFIX/bin"
-LIB_DIR="$INSTALL_PREFIX/lib/ubuntu-raid-cli"
-CONFIG_DIR="/etc/ubuntu-raid-cli"
+LIB_DIR="$INSTALL_PREFIX/lib/ubuntu-disk-toolkit"
+CONFIG_DIR="/etc/ubuntu-disk-toolkit"
 LOG_DIR="/var/log"
-BACKUP_DIR="/var/backups/ubuntu-raid-cli"
+BACKUP_DIR="/var/backups/ubuntu-disk-toolkit"
 SYSTEMD_DIR="/etc/systemd/system"
 
 # 현재 스크립트 디렉토리
@@ -172,7 +172,7 @@ install_scripts() {
     
     # 실행 파일 설치
     local bin_files=(
-        "ubuntu-raid-cli"
+        "ubuntu-disk-toolkit"
         "check-disk-health"
         "manage-raid"
         "auto-monitor"
@@ -230,13 +230,13 @@ setup_logging() {
     print_header "로깅 설정"
     
     # 로그 파일 생성
-    local log_file="/var/log/ubuntu-raid-cli.log"
+    local log_file="/var/log/ubuntu-disk-toolkit.log"
     touch "$log_file"
     chmod 644 "$log_file"
     
     # logrotate 설정
-    cat > /etc/logrotate.d/ubuntu-raid-cli << 'EOF'
-/var/log/ubuntu-raid-cli.log {
+    cat > /etc/logrotate.d/ubuntu-disk-toolkit << 'EOF'
+/var/log/ubuntu-disk-toolkit.log {
     daily
     missingok
     rotate 30
@@ -329,7 +329,7 @@ verify_installation() {
     local errors=0
     
     # 실행 파일 확인
-    for cmd in ubuntu-raid-cli check-disk-health; do
+    for cmd in ubuntu-disk-toolkit check-disk-health; do
         if command -v "$cmd" &> /dev/null; then
             print_success "$cmd 명령어 사용 가능"
         else
@@ -347,7 +347,7 @@ verify_installation() {
     fi
     
     # 권한 확인
-    if [[ -x "$BIN_DIR/ubuntu-raid-cli" ]]; then
+    if [[ -x "$BIN_DIR/ubuntu-disk-toolkit" ]]; then
         print_success "실행 권한 설정됨"
     else
         print_error "실행 권한이 없습니다"
@@ -371,27 +371,27 @@ show_completion_message() {
 ${GREEN}Ubuntu RAID CLI가 성공적으로 설치되었습니다!${NC}
 
 사용법:
-  ubuntu-raid-cli --help          도움말 보기
-  ubuntu-raid-cli list-disks      디스크 목록 확인
+  ubuntu-disk-toolkit --help          도움말 보기
+  ubuntu-disk-toolkit list-disks      디스크 목록 확인
   check-disk-health               시스템 진단 실행
 
 설치 위치:
   실행 파일: $BIN_DIR
   라이브러리: $LIB_DIR  
   설정 파일: $CONFIG_DIR
-  로그 파일: /var/log/ubuntu-raid-cli.log
+  로그 파일: /var/log/ubuntu-disk-toolkit.log
 
 시스템 서비스:
   sudo systemctl status ubuntu-raid-check.timer
 
 예시:
-  ubuntu-raid-cli list-disks
-  ubuntu-raid-cli setup-raid --level 1 --disks /dev/sda,/dev/sdb
+  ubuntu-disk-toolkit list-disks
+  ubuntu-disk-toolkit setup-raid --level 1 --disks /dev/sda,/dev/sdb
   check-disk-health
 
 EOF
 
-    print_info "문제가 발생하면 로그 파일을 확인하세요: /var/log/ubuntu-raid-cli.log"
+    print_info "문제가 발생하면 로그 파일을 확인하세요: /var/log/ubuntu-disk-toolkit.log"
 }
 
 # ===================================================================================
