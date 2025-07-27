@@ -95,18 +95,23 @@ get_status_icon() {
 # 컬러 상태 출력
 print_status() {
     local status="$1"
-    local description="${2:-}"
-    local color
+    local message="$2"
     local icon
+    local color
     
-    color=$(get_status_color "$status")
     icon=$(get_status_icon "$status")
+    color=$(get_status_color "$status")
     
-    if [[ -n "$description" ]]; then
-        echo -e "${color}${icon} ${status}${NC} - $description"
-    else
-        echo -e "${color}${icon} ${status}${NC}"
-    fi
+    echo -e "${color}${icon} ${message}${NC}"
+}
+
+# 단계별 진행 상황 표시 함수
+print_step() {
+    local step="$1"
+    local message="$2"
+    local color="${BLUE}"
+    
+    echo -e "${color}📋 [${step}] ${message}${NC}"
 }
 
 # ===================================================================================
