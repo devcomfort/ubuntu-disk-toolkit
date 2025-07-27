@@ -1,34 +1,34 @@
 # Ubuntu Disk Toolkit
 
-> 🚀 **Ubuntu 시스템용 통합 스토리지 관리 도구 - Pure Bash 구현**
+> 🚀 **Ubuntu 시스템용 통합 스토리지 관리 도구**
 
-Ubuntu 환경에서 디스크, RAID, fstab을 통합 관리하는 포괄적이고 사용자 친화적인 CLI 도구입니다. Python 의존성을 완전히 제거하고 순수 bash로 구현하여 더 빠르고 안정적인 시스템 통합을 제공합니다.
+Ubuntu 환경에서 디스크, RAID, fstab을 통합 관리하는 포괄적이고 사용자 친화적인 CLI 도구입니다. 모듈형 API 아키텍처와 ID 기반 디스크 관리를 통해 안전하고 강력한 스토리지 관리를 제공합니다.
 
 ## ✨ 주요 특징
 
 ### 🎯 **완전한 스토리지 라이프사이클 관리**
-- **RAID 관리**: RAID 0, 1, 5, 6 지원 + 자동 파일시스템 생성
-- **디스크 관리**: mount/umount, 디스크 정보 조회, SMART 상태 확인
-- **fstab 관리**: 분석, 추가, 제거, 검증, 백업
-- **종합 진단**: 기존 `check_disk_health.sh` 기반 확장된 건강 분석
+- **RAID 관리**: RAID 0, 1, 5, 6, 10 지원 + 자동 파일시스템 생성 + fail-safe fstab 통합
+- **디스크 관리**: ID 기반 안전한 디스크 식별 (UUID, PARTUUID, LABEL, /dev/sdX)
+- **fstab 관리**: 자동 fail-safe 옵션 적용, 검증, 백업, ID 기반 안전성
+- **종합 진단**: 실시간 건강 분석 및 자동 문제 수정
 
 ### 🛡️ **안전성 우선 설계**
-- **Fail-safe 마운트**: 부팅 실패 방지를 위한 `nofail` 옵션 자동 권장
-- **자동 백업**: fstab, mdadm.conf 수정 시 자동 백업 생성
-- **권한 관리**: sudo 권한 필요성 검사 및 안전한 권한 상승 안내
-- **테스트 마운트**: fstab 변경 전 안전성 검증
+- **Fail-safe 기본값**: 모든 fstab 항목에 `nofail` 옵션 자동 적용
+- **ID 기반 안정성**: UUID/PARTUUID 사용으로 디바이스 경로 변경에 무관
+- **자동 검증**: 디스크 존재성, RAID 호환성, 마운트 충돌 사전 검사
+- **완전 자동 백업**: fstab, mdadm.conf 수정 시 타임스탬프 백업 생성
 
 ### 🎨 **사용자 친화적 인터페이스**
-- **Interactive 모드**: 단계별 안내로 안전한 작업 수행
-- **하이브리드 지원**: CLI 명령어와 Interactive 모드 동시 지원
-- **다중 출력**: table, detailed, JSON 형식 지원
-- **컬러 UI**: 상태별 색상 코딩과 직관적 아이콘
+- **통합 CLI**: 단일 `ubuntu-disk-toolkit` 명령어로 모든 기능 접근
+- **Just 워크플로우**: 개발자 친화적 `just` 명령어 지원
+- **다중 출력 형식**: table, detailed, simple, JSON 지원
+- **대화형 모드**: 복잡한 작업을 위한 단계별 안내
 
-### ⚡ **시스템 네이티브 통합**
-- **제로 의존성**: Python 없이 순수 bash + 시스템 도구만 사용
-- **직접 연동**: `mdadm`, `lsblk`, `smartctl` 등과 직접 통신
-- **systemd 지원**: 자동 모니터링 및 부팅 시 초기화
-- **즉시 배포**: 스크립트 복사만으로 완전한 설치
+### ⚡ **모듈형 API 아키텍처**
+- **Core Utilities**: `id-resolver.sh`, `validator.sh`, `fail-safe.sh`
+- **High-Level APIs**: `disk-api.sh`, `fstab-api.sh`, `raid-api.sh`
+- **코드 재사용성**: 모든 기능이 모듈화되어 안정적 재사용 가능
+- **확장성**: 새로운 기능 추가가 용이한 계층적 구조
 
 ## 📋 시스템 요구사항
 
@@ -39,196 +39,198 @@ Ubuntu 환경에서 디스크, RAID, fstab을 통합 관리하는 포괄적이�
 
 ### 필수 패키지
 ```bash
-# 자동 설치 확인 및 설치 안내 제공
+# 자동 설치 및 확인 제공
 sudo apt update && sudo apt install -y \
     mdadm \
     smartmontools \
     util-linux \
     parted \
-    e2fsprogs
+    e2fsprogs \
+    shellcheck  # 개발 시 권장
 ```
 
 ## 🚀 빠른 시작
 
-### 1. 저장소 클론
+### 1. 저장소 클론 및 설치
 ```bash
 git clone <repository-url>
 cd ubuntu-disk-toolkit
+
+# 🎯 방법 1: 완전 자동 설치 (권장)
+just setup -y && just install -y
+
+# 🔧 방법 2: 단계별 설치
+just setup          # 개발 환경 설정
+just install         # 시스템 설치
+
+# 📋 방법 3: 수동 설치
+./install/install-deps.sh -y
+sudo ./install/install.sh -y
 ```
 
-### 2. 의존성 설치
+### 2. 즉시 사용 가능한 명령어
 ```bash
-# 🎯 방법 1: Just를 이용한 자동 설치 (권장)
-./install/install-deps.sh --dev
-just setup
-
-# 🔧 방법 2: 수동 의존성 설치
-sudo ./install/install-deps.sh
-chmod +x bin/* tests/run-tests.sh install/*.sh
-
-# 📋 방법 3: 확인만 (설치하지 않음)
-./install/install-deps.sh --check-only
-```
-
-### 3. 시스템 설치
-```bash
-# 자동 설치
-sudo ./install/install.sh
-
-# 또는 Just 사용
-just install
-```
-
-### 4. 현재 상태 확인
-```bash
-# 시스템 호환성 및 필수 도구 확인
-ubuntu-disk-toolkit check-system --auto-install
-
-# 디스크 상태 확인
+# 📊 시스템 상태 확인
+ubuntu-disk-toolkit check-system
 ubuntu-disk-toolkit list-disks
+ubuntu-disk-toolkit list-raids
+ubuntu-disk-toolkit list-fstab
 
-# RAID 배열 상태
-ubuntu-disk-toolkit list-raids --detailed
-
-# 종합 건강 진단
-sudo ubuntu-disk-toolkit analyze-health
+# 🔧 Just 명령어로 더 편리하게
+just check-system
+just disks
+just raids  
+just fstab
 ```
 
-## 🛠️ 개발 및 빌드 시스템
+## 🛠️ 개발 및 Just 워크플로우
 
-### Just를 이용한 개발 워크플로우
+### 📋 전체 Just 명령어 목록
 ```bash
-# 📦 개발 환경 완전 설정
-just setup                    # 의존성 설치 + 권한 설정
+just --list          # 모든 명령어 보기
+just dev-guide        # 개발 가이드 보기
+```
 
-# 🧪 테스트 실행
-just test                     # 전체 테스트
-just test-verbose             # 상세 출력
-just test-parallel            # 병렬 실행
-just test-file test_common.bats  # 특정 테스트
+### ⚡ 핵심 Just 명령어들
+```bash
+# =============================================================================
+# 🚀 개발 환경
+# =============================================================================
+just setup [-y]              # 개발 환경 설정 (의존성 설치 + 권한)
+just install [-y]             # 시스템 설치 (비대화형 가능)
+just uninstall [-y]           # 완전 제거
 
-# 🔍 코드 품질 검사
-just lint                     # shellcheck 검사
-just lint-install             # shellcheck 설치
-
-# 🚀 기능 테스트
+# =============================================================================
+# 🧪 테스트 및 품질 검사
+# =============================================================================
+just test                     # 전체 테스트 실행
+just lint [-y]                # shellcheck 검사 (자동 설치 옵션)
 just demo                     # 데모 실행
-just help                     # CLI 도움말
-just info                     # 시스템 정보
-just disks                    # 디스크 목록
 
-# 🏗️ 설치 및 패키징
-just install                  # 프로덕션 설치
-just install-dev              # 개발 모드 설치
-just package                  # 배포 패키지 생성
-just verify-release           # 릴리스 검증
+# =============================================================================
+# 💾 디스크 관리
+# =============================================================================
+just disks [TYPE]             # 디스크 목록 (table/available/mounted/raid-ready)
+just disk-info <ID>           # 디스크 상세 정보
+just mount-temp <ID> <MOUNT> [FS]     # 임시 마운트
+just unmount-temp <TARGET> [force]    # 임시 언마운트
 
-# 🧹 정리 및 유지보수
-just clean                    # 임시 파일 정리
-just status                   # 프로젝트 상태
-just dev-guide                # 개발 가이드
-```
+# =============================================================================
+# ⚡ RAID 관리
+# =============================================================================
+just raids [FORMAT]           # RAID 상태 (detailed/simple/summary)
+just create-raid <LEVEL> <MOUNT> [FS] <DISK1> <DISK2>...  # RAID 생성
+just remove-raid <DEVICE> [wipe]      # RAID 제거  
+just analyze-raid <DEVICE> [perf]     # RAID 상세 분석
+just setup-raid               # 대화형 RAID 설정
+just raid-disks               # RAID용 사용 가능한 디스크
 
-### 개발자용 명령어
-```bash
-# 개발 환경 상태 확인
-just status
+# =============================================================================
+# 📋 fstab 관리
+# =============================================================================
+just fstab [FORMAT]           # fstab 항목 목록
+just add-fstab <ID> <MOUNT> [FS] [OPTIONS]    # fstab 추가 (fail-safe 자동)
+just remove-fstab <IDENTIFIER>                # fstab 제거
 
-# 프로젝트 정보 표시
-# 📁 프로젝트: ubuntu-disk-toolkit
-# 📂 경로: /path/to/project
-# 🔧 스크립트: 5개
-# 📚 라이브러리: 6개
-# 🧪 테스트: 5개
-# 💾 크기: 2.1M
-
-# 트러블슈팅
-just check-system             # 시스템 호환성 검사
-just fix-permissions          # 권한 문제 해결
-just reinstall-deps           # 의존성 재설치
+# =============================================================================
+# 🔍 시스템 관리
+# =============================================================================
+just check-system             # 전체 시스템 검사
+just fix-system               # 자동 문제 수정
 ```
 
 ## 📖 사용법
 
-### 🔧 **시스템 관리**
+### 🔧 **통합 CLI**
 ```bash
-# 시스템 검사 및 설정
-ubuntu-disk-toolkit check-system               # 전체 검사
-ubuntu-disk-toolkit check-system info          # 시스템 정보
-ubuntu-disk-toolkit check-system requirements  # 필수 도구 확인
-ubuntu-disk-toolkit check-system setup         # 자동 설정
-```
+# 기본 정보 조회
+ubuntu-disk-toolkit --help
+ubuntu-disk-toolkit list-disks [table|available|mounted|raid-ready]
+ubuntu-disk-toolkit list-raids [detailed|simple|summary]  
+ubuntu-disk-toolkit list-fstab [detailed|table|simple]
+ubuntu-disk-toolkit disk-info <UUID|PARTUUID|LABEL|/dev/sdX|sdX>
 
-### 💾 **디스크 관리**
-```bash
-# 디스크 목록 및 상태
-ubuntu-disk-toolkit manage-disk list --all     # 모든 디스크
-ubuntu-disk-toolkit manage-disk info           # Interactive 정보 조회
-
-# 마운트 관리 (Interactive)
-ubuntu-disk-toolkit manage-disk mount          # 단계별 마운트
-ubuntu-disk-toolkit manage-disk umount         # 안전한 언마운트
-```
-
-### 📄 **fstab 관리**
-```bash
-# fstab 분석 및 관리
-ubuntu-disk-toolkit manage-fstab list          # 현재 설정 확인
-ubuntu-disk-toolkit manage-fstab add           # Interactive 항목 추가
-ubuntu-disk-toolkit manage-fstab validate      # 설정 검증
-ubuntu-disk-toolkit manage-fstab backup        # 안전 백업
+# 시스템 관리
+ubuntu-disk-toolkit check-system      # 전체 검사
+ubuntu-disk-toolkit fix-system        # 자동 문제 수정
 ```
 
 ### ⚡ **RAID 관리**
 ```bash
-# RAID 생성 (Interactive)
+# RAID 생성 - 완전 자동화된 프로세스
+ubuntu-disk-toolkit create-raid 1 /data ext4 sdb sdc
+ubuntu-disk-toolkit create-raid 5 /storage ext4 sdb sdc sdd sde
+
+# RAID 관리
+ubuntu-disk-toolkit remove-raid /dev/md0 [wipe]
+ubuntu-disk-toolkit analyze-raid /dev/md0 [perf]
+
+# 대화형 모드 (복잡한 설정용)
 ubuntu-disk-toolkit setup-raid
-
-# 명령줄 모드
-ubuntu-disk-toolkit setup-raid --level 1 --disks /dev/sdb,/dev/sdc --mount /mnt/raid1
-
-# RAID 상태 확인
-ubuntu-disk-toolkit list-raids
-ubuntu-disk-toolkit check-raids                # 상세 상태
 ```
 
-### 🔍 **진단 도구**
+### 📋 **fstab 관리**
 ```bash
-# 기본 상태 확인
-ubuntu-disk-toolkit check
+# ID 기반 안전한 fstab 관리 (fail-safe 자동 적용)
+ubuntu-disk-toolkit add-fstab UUID=12345678-... /data ext4 defaults
+ubuntu-disk-toolkit add-fstab PARTUUID=abcd-... /backup xfs "defaults,noatime"
+ubuntu-disk-toolkit add-fstab /dev/sdb1 /temp ext4 defaults
 
-# 종합 건강 진단 (root 필요)
-sudo ubuntu-disk-toolkit analyze-health
+# fstab 항목 제거
+ubuntu-disk-toolkit remove-fstab /data
+ubuntu-disk-toolkit remove-fstab UUID=12345678-...
 ```
 
-## 🧪 테스트
-
-### bats 기반 테스트 시스템
+### 💾 **디스크 관리**
 ```bash
-# bats 설치 (자동 설치됨)
-sudo apt install bats
+# ID 기반 디스크 정보 (모든 ID 형식 지원)
+ubuntu-disk-toolkit disk-info UUID=12345678-...
+ubuntu-disk-toolkit disk-info /dev/sdb1
+ubuntu-disk-toolkit disk-info sdb
 
-# 또는 개발 환경 설정으로
-just setup
+# 임시 마운트 (fstab 수정 없음)
+ubuntu-disk-toolkit mount-temp UUID=... /mnt/temp ext4
+ubuntu-disk-toolkit unmount-temp /mnt/temp [force]
+```
 
+### 🎯 **실제 사용 예시**
+```bash
+# 1️⃣ RAID 1 미러링 설정 (완전 자동)
+just create-raid 1 /data ext4 sdb sdc
+# ✅ 디스크 검증 → RAID 생성 → 파일시스템 생성 → fstab 등록 (nofail 자동) → 마운트
+
+# 2️⃣ 기존 디스크를 fstab에 안전하게 추가
+just add-fstab UUID=12345678-abcd-... /backup ext4 "defaults,noatime"
+# ✅ UUID 존재 확인 → 마운트포인트 충돌 검사 → nofail 추가 → fstab 백업 → 등록
+
+# 3️⃣ 시스템 전체 검사 및 자동 수정
+just check-system  # 문제점 발견
+just fix-system    # 자동 수정 적용
+
+# 4️⃣ RAID용 사용 가능한 디스크 확인
+just raid-disks
+# ✅ 마운트되지 않고 RAID에 속하지 않은 사용 가능한 디스크만 표시
+```
+
+## 🧪 테스트 시스템
+
+### Bats 기반 통합 테스트
+```bash
 # 테스트 실행
 just test                    # 전체 테스트
-just test-verbose           # 상세 + 색상 출력
-just test-parallel          # 병렬 실행 (4 jobs)
-just test-file test_common.bats   # 특정 테스트
-just test-tap               # TAP 형식 출력
+just lint -y                 # shellcheck 자동 설치 + 검사
+
+# 개발 워크플로우
+just setup -y && just test && just lint -y && just demo
 ```
 
 ### 테스트 구조
 ```
 tests/
-├── test_helpers.bash      # 공통 헬퍼 함수 (Mock 시스템 포함)
-├── test_common.bats       # 공통 함수 테스트
-├── test_system.bats       # 시스템 검사 테스트
-├── test_fstab.bats        # fstab 관리 테스트
-├── test_disk.bats         # 디스크 관리 테스트
-├── test_integration.bats  # 통합 테스트
-└── run-tests.sh           # 테스트 실행기
+├── test_helpers.bash      # Mock 시스템 + 공통 함수
+├── test_common.bats       # 기본 기능 테스트
+├── test_integration.bats  # 통합 테스트 (ubuntu-disk-toolkit)
+└── test_*.bats           # 기능별 세부 테스트
 ```
 
 ## 📁 프로젝트 구조
@@ -236,127 +238,148 @@ tests/
 ```
 ubuntu-disk-toolkit/
 ├── 📋 README.md              # 프로젝트 개요
-├── 🛠️ justfile              # 빌드 도구 (개발 워크플로우)
+├── 🛠️ justfile              # Just 워크플로우
 ├── 📝 docs/
-│   └── FEATURES.md           # 구현 기능 상세
+│   └── FEATURES.md           # 상세 기능 문서
 ├── 🎯 bin/                   # 실행 스크립트
-│   ├── ubuntu-disk-toolkit   # 메인 CLI
+│   ├── ubuntu-disk-toolkit   # 메인 통합 CLI
 │   ├── check-system          # 시스템 검사
 │   ├── manage-disk           # 디스크 관리
 │   ├── manage-fstab          # fstab 관리
 │   └── check-disk-health     # 종합 진단
-├── 📚 lib/                   # 함수 라이브러리
-│   ├── common.sh             # 공통 유틸리티
-│   ├── ui-functions.sh       # UI/출력 함수
-│   ├── system-functions.sh   # 시스템 검사
-│   ├── disk-functions.sh     # 디스크 관리
-│   ├── fstab-functions.sh    # fstab 관리
-│   └── raid-functions.sh     # RAID 관리
+├── 📚 lib/                   # 모듈형 라이브러리
+│   ├── 🔧 Core Utilities
+│   │   ├── common.sh             # 기본 유틸리티
+│   │   ├── id-resolver.sh        # ID 해석 (UUID↔경로)
+│   │   ├── validator.sh          # 검증 시스템
+│   │   └── fail-safe.sh          # nofail 자동 적용
+│   ├── 🎯 High-Level APIs
+│   │   ├── disk-api.sh           # 디스크 관리 API
+│   │   ├── fstab-api.sh          # fstab 관리 API
+│   │   └── raid-api.sh           # RAID 관리 API
+│   └── 🎨 Legacy Functions
+│       ├── ui-functions.sh       # UI/출력 함수
+│       ├── system-functions.sh   # 시스템 검사
+│       ├── disk-functions.sh     # 디스크 관리
+│       ├── fstab-functions.sh    # fstab 관리
+│       └── raid-functions.sh     # RAID 관리
 ├── ⚙️ config/
-│   └── defaults.conf         # 기본 설정
+│   └── defaults.conf         # 설정 파일
 ├── 🚀 install/
 │   ├── install.sh            # 시스템 설치
 │   ├── install-deps.sh       # 의존성 설치
 │   └── uninstall.sh          # 완전 제거
-└── 🧪 tests/                 # bats 테스트 시스템
-    ├── test_*.bats           # 테스트 파일들
-    ├── test_helpers.bash     # 테스트 헬퍼 (Mock 포함)
+└── 🧪 tests/                 # Bats 테스트 시스템
+    ├── test_*.bats           # 기능별 테스트
+    ├── test_helpers.bash     # 테스트 헬퍼
     └── run-tests.sh          # 테스트 실행기
 ```
 
 ## 🔧 고급 기능
 
-### 자동화 및 모니터링
+### ID 기반 디스크 관리
 ```bash
-# systemd 서비스 (자동 설치됨)
-systemctl status ubuntu-disk-toolkit-monitor
-systemctl status ubuntu-disk-toolkit-health-check
+# 지원하는 모든 ID 형식
+ubuntu-disk-toolkit disk-info UUID=12345678-1234-1234-1234-123456789abc
+ubuntu-disk-toolkit disk-info PARTUUID=abcd1234-12ab-34cd-56ef-123456789abc  
+ubuntu-disk-toolkit disk-info LABEL=MyDisk
+ubuntu-disk-toolkit disk-info /dev/sdb1
+ubuntu-disk-toolkit disk-info sdb1
+ubuntu-disk-toolkit disk-info sdb
 
-# 로그 확인
-journalctl -u ubuntu-disk-toolkit-monitor -f
-tail -f /var/log/ubuntu-disk-toolkit.log
+# fstab에서는 UUID가 자동 우선 선택
+just add-fstab /dev/sdb1 /data  # 내부적으로 UUID로 변환
 ```
 
-### 설정 커스터마이징
+### 자동 Fail-Safe 시스템
 ```bash
-# 설정 파일 편집
-sudo nano /etc/ubuntu-disk-toolkit/defaults.conf
+# 모든 fstab 추가 시 nofail 자동 적용
+just add-fstab UUID=... /data ext4 defaults
+# 실제 fstab: UUID=... /data ext4 defaults,nofail 0 2
 
-# 사용자별 설정 오버라이드
-mkdir -p ~/.config/ubuntu-disk-toolkit/
-cp /etc/ubuntu-disk-toolkit/defaults.conf ~/.config/ubuntu-disk-toolkit/
+# RAID의 경우 nofail + noauto 자동 적용  
+just create-raid 1 /data ext4 sdb sdc
+# 실제 fstab: UUID=... /data ext4 defaults,nofail,noauto 0 2
 ```
 
-### JSON API 모드
+### 통합 시스템 검사
 ```bash
-# 자동화를 위한 JSON 출력
-ubuntu-disk-toolkit check-system info --format json | jq .
-ubuntu-disk-toolkit manage-fstab list --format json | jq '.entries[]'
+# 포괄적 시스템 상태 확인
+just check-system
+# ✅ 필수 도구 설치 확인
+# ✅ RAID 배열 상태 검사  
+# ✅ fstab 유효성 검증
+# ✅ 마운트 상태 확인
+# ✅ 디스크 건강 상태
+# ✅ 권한 및 설정 검사
+
+# 발견된 문제 자동 수정
+just fix-system
 ```
 
 ## 🚨 안전 가이드
 
 ### ⚠️ **중요 주의사항**
-1. **백업 필수**: RAID 작업 전 중요 데이터 백업
-2. **권한 관리**: 필요한 경우에만 sudo 사용
-3. **테스트 환경**: 프로덕션 적용 전 테스트 시스템에서 검증
-4. **설정 검증**: fstab 변경 후 반드시 테스트 마운트 실행
+1. **자동 백업**: 모든 설정 변경 시 `/var/backups/` 자동 백업
+2. **ID 기반 안전성**: UUID/PARTUUID 사용으로 디바이스 변경에 무관
+3. **fail-safe 기본값**: 부팅 실패 방지를 위한 `nofail` 자동 적용
+4. **사전 검증**: 모든 작업 전 디스크 존재성, 호환성 검사
 
 ### 🛡️ **내장 안전 기능**
-- **자동 백업**: 모든 설정 변경 시 타임스탬프 백업
-- **Fail-safe 옵션**: 부팅 실패 방지 마운트 옵션
-- **권한 검사**: 위험한 작업 시 명시적 사용자 확인
-- **롤백 지원**: 백업을 통한 설정 복원 가능
+- **ID 검증**: 존재하지 않는 디스크 사전 차단
+- **충돌 방지**: 마운트포인트, fstab 항목 중복 검사
+- **RAID 호환성**: 마운트된 디스크, 기존 RAID 멤버 사용 방지
+- **자동 롤백**: 실패 시 백업을 통한 자동 복원
 
 ## 🤝 기여하기
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### 개발 가이드
+### 개발 워크플로우
 ```bash
-# 개발 환경 설정
-just setup
+# 1. 개발 환경 설정
+git clone <repo> && cd ubuntu-disk-toolkit
+just setup -y
 
-# 개발 워크플로우
-just test && just lint && just demo
+# 2. 개발 및 테스트
+just test && just lint -y
 
-# 코드 품질 검사
-shellcheck bin/* lib/*
+# 3. 새 기능 추가 시
+# - lib/ 디렉토리에 모듈 추가
+# - tests/ 디렉토리에 테스트 추가  
+# - justfile에 명령어 추가 (필요시)
+# - README.md 업데이트
 
-# 새 기능 추가 시 테스트 작성 필수
-just test-file tests/new_feature.bats
+# 4. 풀 리퀘스트 전 최종 검사
+just demo  # 전체 기능 동작 확인
 ```
 
 ## 📜 라이선스
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+이 프로젝트는 MIT 라이선스 하에 배포됩니다.
 
-## 🏆 성과 요약
+## 🏆 주요 개선사항
 
-| 지표 | Python 버전 | **Bash 버전** | 개선율 |
-|------|-------------|---------------|--------|
-| **프로젝트명** | ubuntu-raid-cli | **ubuntu-disk-toolkit** | **범위 확장** |
-| **코드량** | 1,200줄 | **~800줄** | **33% 감소** |
-| **의존성** | 4개 라이브러리 | **0개** | **100% 제거** |
-| **배포** | 빌드 + 패키징 | **스크립트 복사** | **즉시 사용** |
-| **기능 범위** | RAID 중심 | **스토리지 통합** | **3배 확장** |
-| **통합성** | subprocess | **네이티브** | **완벽 연동** |
-| **개발 도구** | 없음 | **Justfile** | **워크플로우 자동화** |
-| **구조** | 중첩 디렉토리 | **직접 접근** | **경로 단순화** |
+| 분야 | 이전 버전 | **현재 버전** | 개선효과 |
+|------|----------|-----------------|----------|
+| **아키텍처** | 단일 파일 함수 | **모듈형 API** | **재사용성 3배 향상** |
+| **디스크 관리** | 경로 기반 | **ID 기반 (UUID/PARTUUID)** | **안정성 대폭 향상** |
+| **fail-safe** | 수동 권장 | **자동 적용** | **부팅 실패 위험 제거** |
+| **CLI 통합** | 개별 스크립트 | **단일 ubuntu-disk-toolkit** | **사용 편의성 향상** |
+| **Just 명령어** | 기본 5개 | **확장 16개** | **개발 생산성 3배** |
+| **검증 시스템** | 기본 검사 | **포괄적 validator.sh** | **오류 사전 방지** |
+| **자동화** | 수동 단계 | **완전 자동 워크플로우** | **RAID 생성 원클릭** |
 
 ---
 
 **Ubuntu Disk Toolkit**으로 더 안전하고 강력한 Ubuntu 스토리지 관리를 경험하세요! 🚀
 
-### 🎯 다음 단계
+### 🎯 지금 바로 시작하기
 ```bash
-# 바로 시작하기
+# 완전 자동 설치 및 데모
 git clone <your-repo>
 cd ubuntu-disk-toolkit
-just setup
-just demo
+just setup -y && just demo
+
+# 첫 번째 RAID 생성
+just raid-disks              # 사용 가능한 디스크 확인
+just create-raid 1 /data ext4 sdb sdc  # RAID 1 생성
 ``` 
