@@ -400,7 +400,7 @@ auto_setup_system() {
     if [[ ! -f "$modules_file" ]]; then
         print_info "부팅 시 RAID 모듈 자동 로드 설정 중..."
         cat > "$modules_file" << 'EOF'
-# RAID modules for ubuntu-raid-cli
+# RAID modules for ubuntu-disk-toolkit
 md_mod
 raid0
 raid1
@@ -415,7 +415,7 @@ EOF
         print_info "mdadm 설정 파일 초기화..."
         mkdir -p "$(dirname "$mdadm_conf")"
         cat > "$mdadm_conf" << 'EOF'
-# mdadm.conf - managed by ubuntu-raid-cli
+# mdadm.conf - managed by ubuntu-disk-toolkit
 # This file is automatically updated when RAID arrays are created/modified
 
 DEVICE partitions

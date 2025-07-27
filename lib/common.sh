@@ -21,7 +21,7 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 CONFIG_FILE="${PROJECT_ROOT}/config/defaults.conf"
 
 # 로깅 설정
-LOG_FILE="/var/log/ubuntu-raid-cli.log"
+LOG_FILE="/var/log/ubuntu-disk-toolkit.log"
 DEBUG_MODE=false
 
 # ===================================================================================
@@ -225,7 +225,7 @@ create_backup() {
 
 # 임시 파일 정리
 cleanup_temp_files() {
-    local temp_pattern="${1:-/tmp/ubuntu-raid-cli.*}"
+    local temp_pattern="${1:-/tmp/ubuntu-disk-toolkit.*}"
     
     # shellcheck disable=SC2086
     rm -f $temp_pattern 2>/dev/null || true

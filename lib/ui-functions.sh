@@ -322,7 +322,7 @@ show_main_help() {
 Ubuntu RAID CLI (Bash Edition)
 
 사용법:
-  ubuntu-raid-cli <command> [options]
+  ubuntu-disk-toolkit <command> [options]
 
 주요 명령어:
   list-disks          사용 가능한 디스크 목록 표시
@@ -338,12 +338,12 @@ Ubuntu RAID CLI (Bash Edition)
   auto-monitor        자동 모니터링 시작
 
 도움말:
-  ubuntu-raid-cli <command> --help    특정 명령어 도움말
-  ubuntu-raid-cli --version           버전 정보 표시
+  ubuntu-disk-toolkit <command> --help    특정 명령어 도움말
+  ubuntu-disk-toolkit --version           버전 정보 표시
 
 예시:
-  ubuntu-raid-cli list-disks
-  ubuntu-raid-cli setup-raid --level 1 --disks /dev/sda,/dev/sdb
+  ubuntu-disk-toolkit list-disks
+  ubuntu-disk-toolkit setup-raid --level 1 --disks /dev/sda,/dev/sdb
   check-disk-health
 
 EOF
