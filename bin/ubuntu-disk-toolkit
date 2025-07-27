@@ -8,8 +8,8 @@ set -euo pipefail
 
 # 스크립트 정보
 SCRIPT_NAME="ubuntu-disk-toolkit"
-VERSION="2.0.0"
-DESCRIPTION="Ubuntu Storage & Disk Management Toolkit"
+VERSION="3.0.0"
+DESCRIPTION="Ubuntu Storage & Disk Management Toolkit - Enhanced with API Integration"
 
 # 경로 설정
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,186 +22,469 @@ fi
 # 공통 라이브러리 로드
 source "$LIB_DIR/common.sh"
 source "$LIB_DIR/ui-functions.sh"
+
+# 새로운 API 모듈 로드
+for api_module in "disk-api.sh" "fstab-api.sh" "raid-api.sh"; do
+    if [[ -f "$LIB_DIR/$api_module" ]]; then
+        source "$LIB_DIR/$api_module"
+    else
+        print_error "필수 API 모듈을 찾을 수 없습니다: $api_module"
+        exit 1
+    fi
+done
+
+# 기존 기능 모듈 로드 (호환성)
 source "$LIB_DIR/disk-functions.sh"
 source "$LIB_DIR/raid-functions.sh"
 
 # ===================================================================================
-# 명령어 함수들
+# 새로운 명령어 함수들 (API 기반)
 # ===================================================================================
 
-# 디스크 목록 표시
+# 디스크 목록 표시 (개선됨)
 cmd_list_disks() {
-    local format="${1:-detailed}"
-    echo "💾 사용 가능한 디스크 목록:"
-    echo "════════════════════════════════════════════════════════════════════════════════"
-    get_all_disks false "$format"
+    local format="${1:-table}"
+    local filter="${2:-}"
+    
+    print_header "💾 디스크 관리"
+    echo ""
+    
+    case "$format" in
+        "available")
+            disk_list_unmounted "table"
+            ;;
+        "mounted")
+            disk_list_mounted "$filter" "table"
+            ;;
+        "raid-ready")
+            disk_list_available_for_raid "table"
+            ;;
+        *)
+            echo "사용 가능한 디스크 목록:"
+            disk_list_unmounted "table"
+            echo ""
+            echo "현재 마운트된 디스크:"
+            disk_list_mounted "$filter" "table"
+            ;;
+    esac
 }
 
-# RAID 배열 목록 표시  
+# RAID 배열 목록 표시 (개선됨)
 cmd_list_raids() {
-    local format="${1:-summary}"
-    echo "⚡ RAID 배열 상태:"
-    echo "════════════════════════════════════════════════════════════════════════════════"
-    get_raid_arrays
+    local format="${1:-detailed}"
+    
+    print_header "⚡ RAID 관리"
+    raid_get_system_status "$format"
 }
 
-# 시스템 전체 검사
+# 시스템 전체 검사 (개선됨)
 cmd_system_check() {
-    echo "🔍 시스템 전체 건강 상태 검사 중..."
-    echo "════════════════════════════════════════════════════════════════════════════════"
+    print_header "🔍 시스템 전체 건강 상태 검사"
     
-    # 시스템 정보
-    ./bin/check-system info
+    print_step "1/3" "디스크 상태 검사 중..."
     echo ""
+    disk_list_unmounted "table"
     
-    # 디스크 상태
-    cmd_list_disks
     echo ""
+    print_step "2/3" "RAID 상태 검사 중..."
+    echo ""
+    if ! raid_health_check_system false; then
+        print_warning "RAID 시스템에 문제가 발견되었습니다"
+    fi
     
-    # RAID 상태  
-    cmd_list_raids
+    echo ""
+    print_step "3/3" "fstab 검증 중..."
+    echo ""
+    if ! fstab_validate_existing false; then
+        print_warning "fstab 설정에 문제가 발견되었습니다"
+    fi
+    
+    echo ""
+    print_success "시스템 전체 검사 완료"
 }
 
-# RAID 설정 (placeholder)
+# 새로운 RAID 생성 명령어
+cmd_create_raid() {
+    local level="$1"
+    local mountpoint="$2"
+    local fstype="${3:-ext4}"
+    shift 3
+    local disk_ids=("$@")
+    
+    if [[ -z "$level" || -z "$mountpoint" || ${#disk_ids[@]} -eq 0 ]]; then
+        print_error "사용법: create-raid <레벨> <마운트포인트> [파일시스템] <디스크1> <디스크2> ..."
+        print_info "예시: create-raid 1 /data ext4 sdb sdc"
+        return 1
+    fi
+    
+    raid_create_complete "$level" "$mountpoint" "$fstype" "defaults" "${disk_ids[@]}"
+}
+
+# RAID 제거 명령어
+cmd_remove_raid() {
+    local raid_device="$1"
+    local wipe_disks="${2:-false}"
+    
+    if [[ -z "$raid_device" ]]; then
+        print_error "사용법: remove-raid <RAID_디바이스> [wipe]"
+        print_info "예시: remove-raid /dev/md0"
+        print_info "       remove-raid /dev/md0 wipe  # 디스크 완전 삭제"
+        return 1
+    fi
+    
+    [[ "$wipe_disks" == "wipe" ]] && wipe_disks="true" || wipe_disks="false"
+    
+    raid_remove_array "$raid_device" true "$wipe_disks"
+}
+
+# fstab 관리 명령어
+cmd_add_fstab() {
+    local device_id="$1"
+    local mountpoint="$2"
+    local fstype="${3:-ext4}"
+    local options="${4:-defaults}"
+    
+    if [[ -z "$device_id" || -z "$mountpoint" ]]; then
+        print_error "사용법: add-fstab <디스크_ID> <마운트포인트> [파일시스템] [옵션]"
+        print_info "예시: add-fstab UUID=12345678-1234-1234-1234-123456789012 /data"
+        print_info "      add-fstab /dev/sdb1 /backup ext4 defaults"
+        return 1
+    fi
+    
+    fstab_add_entry_safe "$device_id" "$mountpoint" "$fstype" "$options"
+}
+
+cmd_remove_fstab() {
+    local identifier="$1"
+    
+    if [[ -z "$identifier" ]]; then
+        print_error "사용법: remove-fstab <마운트포인트_또는_디바이스>"
+        print_info "예시: remove-fstab /data"
+        print_info "      remove-fstab /dev/sdb1"
+        return 1
+    fi
+    
+    fstab_remove_entry_safe "$identifier" true true
+}
+
+cmd_list_fstab() {
+    local format="${1:-detailed}"
+    
+    print_header "📋 fstab 관리"
+    fstab_get_entries "" "$format"
+}
+
+# 임시 마운트 명령어
+cmd_mount_temp() {
+    local device_id="$1"
+    local mountpoint="$2"
+    local fstype="${3:-auto}"
+    
+    if [[ -z "$device_id" || -z "$mountpoint" ]]; then
+        print_error "사용법: mount-temp <디스크_ID> <마운트포인트> [파일시스템]"
+        print_info "예시: mount-temp UUID=12345... /mnt/temp"
+        print_info "      mount-temp /dev/sdb1 /mnt/backup ext4"
+        return 1
+    fi
+    
+    disk_mount_temporary "$device_id" "$mountpoint" "$fstype"
+}
+
+cmd_unmount_temp() {
+    local target="$1"
+    local force="${2:-false}"
+    
+    if [[ -z "$target" ]]; then
+        print_error "사용법: unmount-temp <마운트포인트_또는_디바이스> [force]"
+        print_info "예시: unmount-temp /mnt/temp"
+        print_info "      unmount-temp /dev/sdb1 force"
+        return 1
+    fi
+    
+    [[ "$force" == "force" ]] && force="true" || force="false"
+    
+    disk_unmount_temporary "$target" "$force" true
+}
+
+# 디스크 정보 조회 명령어
+cmd_disk_info() {
+    local disk_id="$1"
+    local format="${2:-detailed}"
+    
+    if [[ -z "$disk_id" ]]; then
+        print_error "사용법: disk-info <디스크_ID> [형식]"
+        print_info "예시: disk-info UUID=12345..."
+        print_info "      disk-info /dev/sdb1 simple"
+        return 1
+    fi
+    
+    disk_get_info "$disk_id" "$format"
+}
+
+# RAID 분석 명령어
+cmd_analyze_raid() {
+    local raid_device="$1"
+    local check_performance="${2:-false}"
+    
+    if [[ -z "$raid_device" ]]; then
+        print_error "사용법: analyze-raid <RAID_디바이스> [performance]"
+        print_info "예시: analyze-raid /dev/md0"
+        print_info "      analyze-raid /dev/md0 performance"
+        return 1
+    fi
+    
+    [[ "$check_performance" == "performance" ]] && check_performance="true" || check_performance="false"
+    
+    raid_analyze_array "$raid_device" "$check_performance"
+}
+
+# 시스템 수정 명령어
+cmd_fix_system() {
+    print_header "🔧 시스템 자동 수정"
+    
+    print_step "1/2" "fstab fail-safe 옵션 수정 중..."
+    if ! check_system_fail_safe; then
+        if confirm_action "모든 fstab 항목에 fail-safe 옵션을 추가하시겠습니까?"; then
+            auto_fix_system_fail_safe
+        fi
+    else
+        print_success "fstab fail-safe 옵션이 모두 적용되어 있습니다"
+    fi
+    
+    echo ""
+    print_step "2/2" "RAID 시스템 문제 수정 중..."
+    raid_auto_fix_issues
+    
+    echo ""
+    print_success "시스템 자동 수정 완료"
+}
+
+# ===================================================================================
+# 기존 호환성 명령어들 (API로 리팩터링)
+# ===================================================================================
+
+# RAID 설정 (기존 호환성)
 cmd_setup_raid() {
-    print_info "RAID 설정 기능은 대화형 모드로 제공됩니다."
-    print_info "다음 명령어를 사용하세요: ubuntu-disk-toolkit manage-disk"
+    print_header "🚀 대화형 RAID 설정"
+    
+    # 사용 가능한 디스크 표시
+    echo ""
+    print_info "RAID 생성에 사용 가능한 디스크:"
+    disk_list_available_for_raid "table"
+    
+    echo ""
+    
+    # RAID 레벨 선택
+    print_info "지원하는 RAID 레벨:"
+    echo "  RAID 0: 스트라이핑 (성능 향상, 중복성 없음) - 최소 2개 디스크"
+    echo "  RAID 1: 미러링 (중복성 제공) - 최소 2개 디스크"  
+    echo "  RAID 5: 패리티 스트라이핑 (성능+중복성) - 최소 3개 디스크"
+    echo "  RAID 10: 미러+스트라이프 (고성능+고안정성) - 최소 4개 디스크"
+    echo ""
+    
+    read -rp "RAID 레벨을 선택하세요 (0/1/5/10): " raid_level
+    
+    case "$raid_level" in
+        0|1|5|10) ;;
+        *) 
+            print_error "지원하지 않는 RAID 레벨입니다"
+            return 1
+            ;;
+    esac
+    
+    # 마운트포인트 입력
+    read -rp "마운트포인트를 입력하세요 (예: /data): " mountpoint
+    
+    if [[ -z "$mountpoint" ]]; then
+        print_error "마운트포인트가 필요합니다"
+        return 1
+    fi
+    
+    # 파일시스템 선택
+    echo ""
+    print_info "파일시스템 종류:"
+    echo "  ext4: 범용적, 안정적 (권장)"
+    echo "  xfs: 대용량 파일에 최적화"
+    echo ""
+    
+    read -rp "파일시스템을 선택하세요 [ext4]: " fstype
+    fstype="${fstype:-ext4}"
+    
+    # 디스크 선택
+    echo ""
+    print_info "사용할 디스크를 선택하세요 (공백으로 구분)"
+    print_info "예시: sdb sdc sdd"
+    read -rp "디스크 목록: " -a disk_list
+    
+    if [[ ${#disk_list[@]} -eq 0 ]]; then
+        print_error "최소 1개 이상의 디스크가 필요합니다"
+        return 1
+    fi
+    
+    # RAID 생성 실행
+    raid_create_complete "$raid_level" "$mountpoint" "$fstype" "defaults" "${disk_list[@]}"
 }
 
 # ===================================================================================
-# 사용법 표시
+# 도움말 시스템
 # ===================================================================================
 
-show_usage() {
+show_help() {
     cat << 'EOF'
+Ubuntu Disk Toolkit v3.0.0 - Enhanced Storage Management
 
-Ubuntu Disk Toolkit - 통합 스토리지 관리 도구
+사용법: ubuntu-disk-toolkit <명령어> [옵션...]
 
-사용법:
-  ubuntu-disk-toolkit <command> [options]
+📋 정보 조회:
+  list-disks [형식]              디스크 목록 표시
+    형식: table(기본), available, mounted, raid-ready
+  list-raids [형식]              RAID 배열 목록 표시  
+    형식: detailed(기본), simple, summary
+  list-fstab [형식]              fstab 항목 표시
+    형식: detailed(기본), table, simple
+  disk-info <ID> [형식]          디스크 상세 정보
+  analyze-raid <디바이스> [perf] RAID 상세 분석
 
-📊 시스템 관리:
-  check-system     시스템 요구사항 검사 및 설정
-  list-disks       디스크 목록 및 상태 표시
-  list-raids       RAID 배열 목록 표시
+🔧 RAID 관리:
+  create-raid <레벨> <마운트포인트> [FS] <디스크...>
+    예시: create-raid 1 /data ext4 sdb sdc
+  remove-raid <디바이스> [wipe]  RAID 제거
+  setup-raid                     대화형 RAID 설정
 
-🔧 디스크 관리:
-  manage-disk      디스크 마운트/언마운트 관리
-  manage-fstab     fstab 항목 관리
+📁 fstab 관리:
+  add-fstab <ID> <마운트포인트> [FS] [옵션]
+    예시: add-fstab UUID=123... /data ext4 defaults
+  remove-fstab <식별자>          fstab 항목 제거
 
-⚡ RAID 관리:
-  setup-raid       새로운 RAID 배열 생성
-  remove-raid      RAID 배열 제거
-  check-raids      RAID 상태 확인
+💾 임시 마운트:
+  mount-temp <ID> <마운트포인트> [FS]    임시 마운트
+  unmount-temp <대상> [force]            임시 언마운트
 
-🔍 진단 도구:
-  check            시스템 전체 건강 상태 확인
-  analyze-health   종합 디스크 연결 분석
+🔍 시스템 관리:
+  check-system                   전체 시스템 검사
+  fix-system                     자동 문제 수정
 
-🆘 도움말:
-  ubuntu-disk-toolkit <command> --help    특정 명령어 도움말
-  ubuntu-disk-toolkit --version           버전 정보
+기존 호환 명령어:
+  disks, raids, demo, setup      기존 스타일 명령어
 
-예시:
-  # 시스템 설정 및 확인
-  ubuntu-disk-toolkit check-system --auto-install
-  ubuntu-disk-toolkit list-disks --all
-  
-  # RAID 관리
-  ubuntu-disk-toolkit setup-raid --level 1 --disks /dev/sda,/dev/sdb
-  ubuntu-disk-toolkit list-raids --detailed
-  
-  # 디스크 관리
-  ubuntu-disk-toolkit manage-disk mount
-  ubuntu-disk-toolkit manage-fstab add
-  
-  # 종합 진단
-  ubuntu-disk-toolkit analyze-health
-
-💡 Tip: 대부분의 명령어는 interactive 모드를 지원합니다.
-      옵션 없이 실행하면 단계별 안내를 받을 수 있습니다.
-
+ID 형식: UUID=..., PARTUUID=..., LABEL=..., /dev/sdX, sdX
 EOF
 }
 
-# 버전 정보 표시
-show_version() {
-    echo "$SCRIPT_NAME version $VERSION"
-    echo "$DESCRIPTION"
+show_command_list() {
+    echo "사용 가능한 명령어:"
+    echo ""
+    echo "📋 정보 조회:"
+    echo "  list-disks, list-raids, list-fstab, disk-info, analyze-raid"
+    echo ""
+    echo "🔧 RAID 관리:"
+    echo "  create-raid, remove-raid, setup-raid"
+    echo ""
+    echo "📁 fstab 관리:"
+    echo "  add-fstab, remove-fstab"
+    echo ""
+    echo "💾 임시 마운트:"
+    echo "  mount-temp, unmount-temp"
+    echo ""
+    echo "🔍 시스템 관리:"
+    echo "  check-system, fix-system"
+    echo ""
+    echo "기존 호환성:"
+    echo "  disks, raids, demo, setup"
+    echo ""
+    echo "자세한 사용법: ubuntu-disk-toolkit help"
 }
 
-# 메인 함수
-main() {
-    if [[ $# -eq 0 ]]; then
-        show_usage
-        exit 0
-    fi
+# ===================================================================================
+# 메인 실행 로직
+# ===================================================================================
 
-    case "${1:-}" in
-        # 도움말 및 정보
-        "-h"|"--help")
-            show_usage
-            exit 0
-            ;;
-        "--version")
-            show_version
-            exit 0
-            ;;
-            
-        # 시스템 관리
-        "check-system")
-            # 현재 디렉토리의 bin 경로에서 실행
-            local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-            exec "$bin_dir/check-system" "${@:2}"
-            ;;
-            
-        # 기본 명령어들
+main() {
+    # 인수가 없는 경우 명령어 목록 표시
+    if [[ $# -eq 0 ]]; then
+        show_command_list
+        return 0
+    fi
+    
+    local command="$1"
+    shift
+    
+    case "$command" in
+        # 새로운 API 기반 명령어들
         "list-disks")
-            cmd_list_disks "${@:2}"
+            cmd_list_disks "$@"
             ;;
         "list-raids")
-            cmd_list_raids "${@:2}"
+            cmd_list_raids "$@"
             ;;
-            
-        # 디스크 관리
-        "manage-disk")
-            local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-            exec "$bin_dir/manage-disk" "${@:2}"
+        "list-fstab")
+            cmd_list_fstab "$@"
             ;;
-        "manage-fstab")
-            local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-            exec "$bin_dir/manage-fstab" "${@:2}"
-            ;;
-            
-        # RAID 관리
-        "setup-raid")
-            cmd_setup_raid "${@:2}"
+        "create-raid")
+            cmd_create_raid "$@"
             ;;
         "remove-raid")
-            print_warning "RAID 제거는 현재 수동으로만 지원됩니다."
-            print_info "다음 명령어를 사용하세요:"
-            echo "  sudo mdadm --stop /dev/mdX"
-            echo "  sudo mdadm --remove /dev/mdX"
-            echo "  sudo mdadm --zero-superblock /dev/sdX /dev/sdY"
+            cmd_remove_raid "$@"
             ;;
-        "check-raids")
-            cmd_list_raids --detailed "${@:2}"
+        "add-fstab")
+            cmd_add_fstab "$@"
             ;;
-            
-        # 진단 도구
-        "check")
-            cmd_system_check "${@:2}"
+        "remove-fstab")
+            cmd_remove_fstab "$@"
             ;;
-        "analyze-health")
-            local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-            exec "$bin_dir/check-disk-health" "${@:2}"
+        "mount-temp")
+            cmd_mount_temp "$@"
             ;;
-            
-        *)
-            print_error "알 수 없는 명령어: $1"
+        "unmount-temp")
+            cmd_unmount_temp "$@"
+            ;;
+        "disk-info")
+            cmd_disk_info "$@"
+            ;;
+        "analyze-raid")
+            cmd_analyze_raid "$@"
+            ;;
+        "check-system")
+            cmd_system_check "$@"
+            ;;
+        "fix-system")
+            cmd_fix_system "$@"
+            ;;
+        "setup-raid")
+            cmd_setup_raid "$@"
+            ;;
+        
+        # 기존 호환성 명령어들 (별칭)
+        "disks")
+            cmd_list_disks table
+            ;;
+        "raids")
+            cmd_list_raids detailed
+            ;;
+        "demo")
+            print_header "🎬 Ubuntu Disk Toolkit Demo"
             echo ""
-            show_usage
-            exit 1
+            print_info "시스템 상태 개요:"
+            cmd_system_check
+            ;;
+        "setup")
+            cmd_setup_raid
+            ;;
+        
+        # 도움말
+        "help"|"-h"|"--help")
+            show_help
+            ;;
+        "commands")
+            show_command_list
+            ;;
+        
+        # 알 수 없는 명령어
+        *)
+            print_error "알 수 없는 명령어: $command"
+            echo ""
+            show_command_list
+            return 1
             ;;
     esac
 }
