@@ -154,24 +154,114 @@ lint-install *args='':
 # 🚀 실행 및 데모
 # =============================================================================
 
+# =============================================================================
+# 🆘 도움말 및 정보
+# =============================================================================
+
 # 메인 CLI 도움말 표시
 help:
-    @./{{bin_dir}}/ubuntu-disk-toolkit --help
+    @./{{bin_dir}}/ubuntu-disk-toolkit help
+
+# 명령어 목록
+commands:
+    @echo "📋 사용 가능한 명령어"
+    @./{{bin_dir}}/ubuntu-disk-toolkit commands
 
 # 시스템 정보 확인
 info:
     @echo "💻 시스템 정보 확인 중..."
     @./{{bin_dir}}/ubuntu-disk-toolkit check-system info
 
+# =============================================================================
+# 💾 디스크 관리 (확장됨)
+# =============================================================================
+
 # 디스크 목록 확인
-disks:
+disks TYPE="table":
     @echo "💾 디스크 목록 확인 중..."
-    @./{{bin_dir}}/ubuntu-disk-toolkit list-disks
+    @./{{bin_dir}}/ubuntu-disk-toolkit list-disks {{TYPE}}
+
+# 디스크 상세 정보
+disk-info ID:
+    @echo "💾 디스크 정보 조회: {{ID}}"
+    @./{{bin_dir}}/ubuntu-disk-toolkit disk-info {{ID}}
+
+# 임시 마운트
+mount-temp ID MOUNTPOINT FSTYPE="auto":
+    @echo "💾 임시 마운트: {{ID}} → {{MOUNTPOINT}}"
+    @./{{bin_dir}}/ubuntu-disk-toolkit mount-temp {{ID}} {{MOUNTPOINT}} {{FSTYPE}}
+
+# 임시 언마운트
+unmount-temp TARGET FORCE="":
+    @echo "💾 임시 언마운트: {{TARGET}}"
+    @./{{bin_dir}}/ubuntu-disk-toolkit unmount-temp {{TARGET}} {{FORCE}}
+
+# =============================================================================
+# ⚡ RAID 관리 (대폭 확장됨)
+# =============================================================================
 
 # RAID 상태 확인
-raids:
+raids FORMAT="detailed":
     @echo "⚡ RAID 상태 확인 중..."
-    @./{{bin_dir}}/ubuntu-disk-toolkit list-raids
+    @./{{bin_dir}}/ubuntu-disk-toolkit list-raids {{FORMAT}}
+
+# 새로운 RAID 생성
+create-raid LEVEL MOUNTPOINT FSTYPE="ext4" *DISKS:
+    @echo "⚡ RAID {{LEVEL}} 생성: {{MOUNTPOINT}}"
+    @./{{bin_dir}}/ubuntu-disk-toolkit create-raid {{LEVEL}} {{MOUNTPOINT}} {{FSTYPE}} {{DISKS}}
+
+# RAID 제거
+remove-raid DEVICE WIPE="":
+    @echo "⚡ RAID 제거: {{DEVICE}}"
+    @./{{bin_dir}}/ubuntu-disk-toolkit remove-raid {{DEVICE}} {{WIPE}}
+
+# RAID 상세 분석
+analyze-raid DEVICE PERF="":
+    @echo "⚡ RAID 분석: {{DEVICE}}"
+    @./{{bin_dir}}/ubuntu-disk-toolkit analyze-raid {{DEVICE}} {{PERF}}
+
+# 대화형 RAID 설정
+setup-raid:
+    @echo "⚡ 대화형 RAID 설정"
+    @./{{bin_dir}}/ubuntu-disk-toolkit setup-raid
+
+# RAID용 사용 가능한 디스크 확인
+raid-disks:
+    @echo "⚡ RAID용 사용 가능한 디스크"
+    @./{{bin_dir}}/ubuntu-disk-toolkit list-disks raid-ready
+
+# =============================================================================
+# 📋 fstab 관리 (신규)
+# =============================================================================
+
+# fstab 항목 목록
+fstab FORMAT="detailed":
+    @echo "📋 fstab 항목 확인 중..."
+    @./{{bin_dir}}/ubuntu-disk-toolkit list-fstab {{FORMAT}}
+
+# fstab 항목 추가
+add-fstab ID MOUNTPOINT FSTYPE="ext4" OPTIONS="defaults":
+    @echo "📋 fstab 추가: {{ID}} → {{MOUNTPOINT}}"
+    @./{{bin_dir}}/ubuntu-disk-toolkit add-fstab {{ID}} {{MOUNTPOINT}} {{FSTYPE}} {{OPTIONS}}
+
+# fstab 항목 제거
+remove-fstab IDENTIFIER:
+    @echo "📋 fstab 제거: {{IDENTIFIER}}"
+    @./{{bin_dir}}/ubuntu-disk-toolkit remove-fstab {{IDENTIFIER}}
+
+# =============================================================================
+# 🔍 시스템 관리 (신규)
+# =============================================================================
+
+# 전체 시스템 검사
+check-system:
+    @echo "🔍 전체 시스템 검사 중..."
+    @./{{bin_dir}}/ubuntu-disk-toolkit check-system
+
+# 시스템 자동 수정
+fix-system:
+    @echo "🔧 시스템 자동 수정 중..."
+    @./{{bin_dir}}/ubuntu-disk-toolkit fix-system
 
 # 종합 시스템 검사 (데모용)
 demo:
@@ -182,6 +272,35 @@ demo:
     @just info
     @echo ""
     @just disks
+
+# 개발 가이드
+dev-guide:
+    @echo "🛠️ 개발 가이드"
+    @echo ""
+    @echo "=== 기본 명령어 ==="
+    @echo "just setup          # 개발 환경 설정"
+    @echo "just test            # 테스트 실행"
+    @echo "just lint            # 코드 검사"
+    @echo "just install         # 시스템 설치"
+    @echo ""
+    @echo "=== 디스크 관리 ==="
+    @echo "just disks           # 디스크 목록"
+    @echo "just disk-info <ID>  # 디스크 정보"
+    @echo "just mount-temp <ID> <MOUNT>  # 임시 마운트"
+    @echo ""
+    @echo "=== RAID 관리 ==="
+    @echo "just raids           # RAID 상태"
+    @echo "just create-raid <LEVEL> <MOUNT> <DISK1> <DISK2>..."
+    @echo "just setup-raid      # 대화형 RAID 설정"
+    @echo "just raid-disks      # RAID용 디스크 확인"
+    @echo ""
+    @echo "=== fstab 관리 ==="
+    @echo "just fstab           # fstab 목록"
+    @echo "just add-fstab <ID> <MOUNT>  # fstab 추가"
+    @echo ""
+    @echo "=== 시스템 관리 ==="
+    @echo "just check-system    # 전체 검사"
+    @echo "just fix-system      # 자동 수정"
 
 # =============================================================================
 # 🏗️ 설치
@@ -241,7 +360,4 @@ status:
 # 🚨 트러블슈팅
 # =============================================================================
 
-# 시스템 호환성 검사
-check-system:
-    @echo "🔍 시스템 호환성 검사 중..."
-    @./{{bin_dir}}/ubuntu-disk-toolkit check-system requirements 
+# 시스템 호환성 검사는 이미 위에 정의되어 있으므로 여기서는 제거 
