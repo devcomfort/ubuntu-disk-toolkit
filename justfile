@@ -56,32 +56,98 @@ test:
 # =============================================================================
 
 # shellcheck로 모든 스크립트 검사
-lint:
-    @echo "🔍 코드 품질 검사 중..."
-    @if which shellcheck > /dev/null 2>&1; then \
-        echo "📝 bin/ 디렉토리 검사..."; \
-        find {{bin_dir}} -name "*.sh" -o -name "*" -type f -executable | xargs shellcheck || true; \
-        echo "📝 lib/ 디렉토리 검사..."; \
-        find {{lib_dir}} -name "*.sh" | xargs shellcheck || true; \
-        echo "📝 tests/ 디렉토리 검사..."; \
-        find {{tests_dir}} -name "*.sh" -o -name "*.bash" | xargs shellcheck || true; \
-        echo "✅ 코드 검사 완료"; \
-    else \
-        echo "⚠️ shellcheck가 설치되지 않아 코드 검사를 건너뜁니다"; \
-        echo "💡 설치하려면: sudo apt install shellcheck"; \
-        echo "ℹ️ 기본적인 구문 검사는 bash -n으로 대체합니다..."; \
-        find {{bin_dir}} {{lib_dir}} {{tests_dir}} -name "*.sh" -exec bash -n {} \; && echo "✅ 구문 검사 완료"; \
+lint *args='':
+    #!/bin/bash
+    echo "🔍 코드 품질 검사 중..."
+    
+    # shellcheck 설치 확인
+    if which shellcheck > /dev/null 2>&1; then
+        echo "📝 shellcheck로 전체 검사 중..."
+    else
+        echo "⚠️ shellcheck가 설치되지 않았습니다"
+        
+        # 자동 설치 모드 확인
+        if [[ "{{args}}" == *"-y"* ]] || [[ "{{args}}" == *"--yes"* ]]; then
+            echo "🔧 shellcheck 자동 설치 중..."
+            sudo apt update -qq && sudo apt install -y shellcheck
+            if which shellcheck > /dev/null 2>&1; then
+                echo "✅ shellcheck 설치 완료"
+            else
+                echo "❌ shellcheck 설치 실패. 기본 구문 검사로 대체합니다."
+            fi
+        else
+            echo "💡 shellcheck 설치를 권장합니다 (더 정확한 검사 가능)"
+            echo -n "지금 설치하시겠습니까? [y/N]: "
+            read -r response
+            if [[ "$response" =~ ^[Yy]$ ]]; then
+                echo "🔧 shellcheck 설치 중..."
+                sudo apt update -qq && sudo apt install -y shellcheck
+                if which shellcheck > /dev/null 2>&1; then
+                    echo "✅ shellcheck 설치 완료"
+                else
+                    echo "❌ shellcheck 설치 실패. 기본 구문 검사로 대체합니다."
+                fi
+            else
+                echo "ℹ️ shellcheck 설치를 건너뜁니다"
+            fi
+        fi
+    fi
+    
+    # 실제 검사 수행
+    if which shellcheck > /dev/null 2>&1; then
+        echo "📝 bin/ 디렉토리 검사..."
+        find {{bin_dir}} -name "*.sh" -o -name "*" -type f -executable | xargs shellcheck || true
+        echo "📝 lib/ 디렉토리 검사..."
+        find {{lib_dir}} -name "*.sh" | xargs shellcheck || true
+        echo "📝 tests/ 디렉토리 검사..."
+        find {{tests_dir}} -name "*.sh" -o -name "*.bash" | xargs shellcheck || true
+        echo "✅ shellcheck 코드 검사 완료"
+    else
+        echo "ℹ️ 기본적인 구문 검사로 대체합니다..."
+        find {{bin_dir}} {{lib_dir}} {{tests_dir}} -name "*.sh" -exec bash -n {} \; && echo "✅ 구문 검사 완료"
     fi
 
-# shellcheck 설치 확인
-lint-install:
-    @echo "🔧 shellcheck 설치 확인..."
-    @if which shellcheck > /dev/null 2>&1; then \
-        echo "✅ shellcheck 설치됨"; \
-    else \
-        echo "⚠️ shellcheck가 설치되지 않았습니다"; \
-        echo "💡 설치 방법: sudo apt install shellcheck"; \
-        echo "ℹ️ shellcheck는 선택사항입니다. 코드 품질 향상을 위해 권장됩니다."; \
+# shellcheck 설치 확인 및 설치
+lint-install *args='':
+    #!/bin/bash
+    echo "🔧 shellcheck 설치 확인..."
+    
+    if which shellcheck > /dev/null 2>&1; then
+        echo "✅ shellcheck가 이미 설치되어 있습니다"
+        shellcheck --version | head -1
+    else
+        echo "⚠️ shellcheck가 설치되지 않았습니다"
+        echo "💡 shellcheck는 shell 스크립트의 품질을 크게 향상시킵니다"
+        
+        # 자동 설치 모드 확인
+        if [[ "{{args}}" == *"-y"* ]] || [[ "{{args}}" == *"--yes"* ]]; then
+            echo "🔧 shellcheck 자동 설치 중..."
+            sudo apt update -qq && sudo apt install -y shellcheck
+            if which shellcheck > /dev/null 2>&1; then
+                echo "✅ shellcheck 설치 완료"
+                shellcheck --version | head -1
+            else
+                echo "❌ shellcheck 설치 실패"
+                exit 1
+            fi
+        else
+            echo -n "지금 설치하시겠습니까? [y/N]: "
+            read -r response
+            if [[ "$response" =~ ^[Yy]$ ]]; then
+                echo "🔧 shellcheck 설치 중..."
+                sudo apt update -qq && sudo apt install -y shellcheck
+                if which shellcheck > /dev/null 2>&1; then
+                    echo "✅ shellcheck 설치 완료"
+                    shellcheck --version | head -1
+                else
+                    echo "❌ shellcheck 설치 실패"
+                    exit 1
+                fi
+            else
+                echo "ℹ️ 설치를 건너뜁니다"
+                echo "💡 나중에 수동으로 설치하려면: sudo apt install shellcheck"
+            fi
+        fi
     fi
 
 # =============================================================================
@@ -162,12 +228,14 @@ status:
     @echo "💾 크기: $(du -sh . | cut -f1)"
     @echo ""
     @echo "🚀 개발 가이드:"
-    @echo "  just setup       # 개발 환경 설정"
-    @echo "  just setup -y    # 자동 설정 (CI/CD용)"
-    @echo "  just test        # 테스트 실행"  
-    @echo "  just lint        # 코드 검사"
-    @echo "  just install -y  # 자동 설치"
-    @echo "  just demo        # 기능 데모"
+    @echo "  just setup          # 개발 환경 설정"
+    @echo "  just setup -y       # 자동 설정 (CI/CD용)"
+    @echo "  just test           # 테스트 실행"  
+    @echo "  just lint           # 코드 검사 (shellcheck 자동 설치 제안)"
+    @echo "  just lint -y        # 코드 검사 (shellcheck 자동 설치)"
+    @echo "  just lint-install   # shellcheck 설치 확인/설치"
+    @echo "  just install -y     # 자동 설치"
+    @echo "  just demo           # 기능 데모"
 
 # =============================================================================
 # 🚨 트러블슈팅
