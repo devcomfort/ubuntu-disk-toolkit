@@ -6,13 +6,24 @@
 
 # 색상 코드 정의 (중복 정의 방지)
 if [[ -z "${RED:-}" ]]; then
-    declare -r RED='\033[0;31m'
-    declare -r GREEN='\033[0;32m'
-    declare -r YELLOW='\033[0;33m'
-    declare -r BLUE='\033[0;34m'
-    declare -r CYAN='\033[0;36m'
-    declare -r BOLD='\033[1m'
-    declare -r NC='\033[0m' # No Color
+    if [[ "${NO_COLOR:-}" == "1" ]] || [[ -n "${NO_COLOR:-}" ]]; then
+        # NO_COLOR가 설정된 경우 색상 코드를 빈 문자열로 설정
+        declare -r RED=''
+        declare -r GREEN=''
+        declare -r YELLOW=''
+        declare -r BLUE=''
+        declare -r CYAN=''
+        declare -r BOLD=''
+        declare -r NC=''
+    else
+        declare -r RED='\033[0;31m'
+        declare -r GREEN='\033[0;32m'
+        declare -r YELLOW='\033[0;33m'
+        declare -r BLUE='\033[0;34m'
+        declare -r CYAN='\033[0;36m'
+        declare -r BOLD='\033[1m'
+        declare -r NC='\033[0m' # No Color
+    fi
 fi
 
 # 전역 변수
@@ -72,12 +83,18 @@ log_message() {
     local message="$2"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     
-    # 로그 디렉토리가 없으면 생성
-    [[ ! -d "$(dirname "$LOG_FILE")" ]] && sudo mkdir -p "$(dirname "$LOG_FILE")"
+    # 로그 디렉토리가 없으면 생성 (테스트 모드가 아닐 때만 sudo 사용)
+    if [[ ! -d "$(dirname "$LOG_FILE")" ]]; then
+        if [[ "${TESTING_MODE:-}" == "true" ]]; then
+            mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+        else
+            sudo mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+        fi
+    fi
     
     # 로그 파일에 기록 (권한이 있을 때만)
-    if [[ -w "$(dirname "$LOG_FILE")" ]] || [[ -w "$LOG_FILE" ]]; then
-        echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+    if [[ -w "$(dirname "$LOG_FILE")" ]] || [[ -w "$LOG_FILE" ]] 2>/dev/null; then
+        echo "[$timestamp] [$level] $message" >> "$LOG_FILE" 2>/dev/null || true
     fi
 }
 
@@ -203,7 +220,14 @@ show_progress() {
 # 백업 생성
 create_backup() {
     local file="$1"
-    local backup_dir="${PROJECT_ROOT}/backups"
+    local backup_dir
+    
+    # 테스트 모드일 때는 테스트 임시 디렉토리 사용
+    if [[ "${TESTING_MODE:-}" == "true" && -n "${TEST_TEMP_DIR:-}" ]]; then
+        backup_dir="${TEST_TEMP_DIR}"
+    else
+        backup_dir="${PROJECT_ROOT}/backups"
+    fi
     
     if [[ ! -f "$file" ]]; then
         print_error "백업할 파일이 존재하지 않습니다: $file"
@@ -211,7 +235,7 @@ create_backup() {
     fi
     
     mkdir -p "$backup_dir"
-    local backup_file="${backup_dir}/$(basename "$file").$(date +%Y%m%d_%H%M%S).bak"
+    local backup_file="${backup_dir}/$(basename "$file").backup.$(date +%Y%m%d_%H%M%S)"
     
     if cp "$file" "$backup_file"; then
         print_success "백업 생성됨: $backup_file"
@@ -227,9 +251,18 @@ create_backup() {
 cleanup_temp_files() {
     local temp_pattern="${1:-/tmp/ubuntu-disk-toolkit.*}"
     
-    # shellcheck disable=SC2086
-    rm -f $temp_pattern 2>/dev/null || true
-    print_debug "임시 파일 정리 완료"
+    # TEMP_FILES 배열이 설정되어 있으면 해당 파일들 삭제 (테스트용)
+    if [[ -n "${TEMP_FILES:-}" ]]; then
+        for file in "${TEMP_FILES[@]}"; do
+            [[ -f "$file" ]] && rm -f "$file" 2>/dev/null
+        done
+        print_debug "TEMP_FILES 배열의 임시 파일들 정리 완료"
+    else
+        # 기본 패턴으로 임시 파일 삭제
+        # shellcheck disable=SC2086
+        rm -f $temp_pattern 2>/dev/null || true
+        print_debug "임시 파일 정리 완료"
+    fi
 }
 
 # 스크립트 종료 시 정리 작업

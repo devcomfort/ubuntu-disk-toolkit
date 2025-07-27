@@ -26,6 +26,11 @@ setup_test_environment() {
     create_test_config
     create_test_fstab
     
+    # 테스트용 로그 파일 설정
+    export TEST_LOG_FILE="${TEST_TEMP_DIR}/test.log"
+    export LOG_FILE="${TEST_LOG_FILE}"  # 비즈니스 로직에서 사용하는 LOG_FILE 오버라이드
+    touch "${TEST_LOG_FILE}"
+    
     # 색상 출력 비활성화 (테스트 시 ANSI 코드 제거)
     export NO_COLOR=1
     export TESTING_MODE=true

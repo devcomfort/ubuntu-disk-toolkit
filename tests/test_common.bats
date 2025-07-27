@@ -30,12 +30,22 @@ teardown() {
 @test "색상 변수 정의 확인" {
     source "${LIB_DIR}/common.sh"
     
-    # 색상 변수들이 정의되어 있는지 확인
-    [[ -n "${RED:-}" ]]
-    [[ -n "${GREEN:-}" ]]
-    [[ -n "${YELLOW:-}" ]]
-    [[ -n "${BLUE:-}" ]]
-    [[ -n "${NC:-}" ]]
+    # NO_COLOR가 설정된 경우 빈 문자열, 아닌 경우 색상 코드가 있어야 함
+    if [[ "${NO_COLOR:-}" == "1" ]]; then
+        # NO_COLOR 모드에서는 색상 변수가 빈 문자열이어야 함
+        [[ -z "${RED}" ]]
+        [[ -z "${GREEN}" ]]
+        [[ -z "${YELLOW}" ]]
+        [[ -z "${BLUE}" ]]
+        [[ -z "${NC}" ]]
+    else
+        # 일반 모드에서는 색상 변수가 정의되어 있어야 함
+        [[ -n "${RED:-}" ]]
+        [[ -n "${GREEN:-}" ]]
+        [[ -n "${YELLOW:-}" ]]
+        [[ -n "${BLUE:-}" ]]
+        [[ -n "${NC:-}" ]]
+    fi
 }
 
 @test "print_header 함수 동작 확인" {
@@ -66,16 +76,16 @@ teardown() {
     source "${LIB_DIR}/common.sh"
     
     run print_warning "경고 메시지"
-    assert_command_success
-    assert_output_contains "경고 메시지"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ "경고 메시지" ]]
 }
 
 @test "print_info 함수 동작 확인" {
     source "${LIB_DIR}/common.sh"
     
     run print_info "정보 메시지"
-    assert_command_success
-    assert_output_contains "정보 메시지"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ "정보 메시지" ]]
 }
 
 # ===================================================================================
@@ -85,9 +95,9 @@ teardown() {
 @test "safe_execute 함수 - 성공 케이스" {
     source "${LIB_DIR}/common.sh"
     
-    run safe_execute "echo 'test command'"
-    assert_command_success
-    assert_output_contains "test command"
+    run safe_execute echo "test command"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ "test command" ]]
 }
 
 @test "safe_execute 함수 - 실패 케이스" {
@@ -261,8 +271,8 @@ teardown() {
         print_success "중간"
         print_info "끝"
     '
-    assert_command_success
-    assert_output_contains "시작"
-    assert_output_contains "중간"
-    assert_output_contains "끝"
+    [[ "$status" -eq 0 ]]
+    [[ "$output" =~ "시작" ]]
+    [[ "$output" =~ "중간" ]]
+    [[ "$output" =~ "끝" ]]
 } 
