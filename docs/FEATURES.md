@@ -3,7 +3,7 @@
 ## 🎯 요구사항 대비 구현 현황
 
 ### ✅ 1. 기본 검사 시스템
-- **명령어**: `ubuntu-raid-cli check-system`
+- **명령어**: `ubuntu-disk-toolkit check-system`
 - **기능**:
   - CLI 도구 자동 감지 및 설치 안내 (`mdadm`, `smartmontools`, `util-linux` 등)
   - sudo 권한 검사 및 경고 (자동 권한 상승 없음)
@@ -11,7 +11,7 @@
   - 커널 모듈 확인 (`md_mod`, `raid0`, `raid1`, `raid456`)
 
 ### ✅ 2. 디스크 관리 시스템  
-- **명령어**: `ubuntu-raid-cli manage-disk`
+- **명령어**: `ubuntu-disk-toolkit manage-disk`
 - **기능**:
   - `lsblk` 기반 디스크 목록 및 상태 확인
   - Interactive 및 명령줄 모드 지원
@@ -19,7 +19,7 @@
   - 상세 디스크 정보 조회 (SMART 포함)
 
 ### ✅ 3. fstab 관리 시스템
-- **명령어**: `ubuntu-raid-cli manage-fstab`  
+- **명령어**: `ubuntu-disk-toolkit manage-fstab`  
 - **기능**:
   - fstab 파일 분석 및 정보 출력
   - Interactive 항목 추가/제거
@@ -29,7 +29,7 @@
   - 테스트 마운트 지원
 
 ### ✅ 4. RAID 관리 시스템
-- **명령어**: `ubuntu-raid-cli setup-raid`, `ubuntu-raid-cli list-raids`
+- **명령어**: `ubuntu-disk-toolkit setup-raid`, `ubuntu-disk-toolkit list-raids`
 - **기능**:
   - `mdadm` 기반 RAID 구성 (레벨 0, 1, 5, 6)
   - 기존 RAID 배열 조회 및 상태 확인
@@ -38,7 +38,7 @@
   - 자동 파일시스템 생성 및 마운트
 
 ### ✅ 5. 디스크 연결 분석 시스템
-- **명령어**: `ubuntu-raid-cli analyze-health`
+- **명령어**: `ubuntu-disk-toolkit analyze-health`
 - **기능**:
   - 기존 `check_disk_health.sh` 완전 통합
   - 블록 디바이스 전체 분석
@@ -51,7 +51,7 @@
 
 ### 메인 통합 도구
 ```bash
-ubuntu-raid-cli <command> [options]
+ubuntu-disk-toolkit <command> [options]
 ```
 
 ### 시스템 관리
