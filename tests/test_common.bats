@@ -42,24 +42,24 @@ teardown() {
     source "${LIB_DIR}/common.sh"
     
     run print_header "테스트 헤더"
-    assert_command_success
-    assert_output_contains "테스트 헤더"
+    [[ $status -eq 0 ]]
+    [[ "$output" =~ "테스트 헤더" ]]
 }
 
 @test "print_success 함수 동작 확인" {
     source "${LIB_DIR}/common.sh"
     
     run print_success "성공 메시지"
-    assert_command_success
-    assert_output_contains "성공 메시지"
+    [[ $status -eq 0 ]]
+    [[ "$output" =~ "성공 메시지" ]]
 }
 
 @test "print_error 함수 동작 확인" {
     source "${LIB_DIR}/common.sh"
     
     run print_error "오류 메시지"
-    assert_command_success
-    assert_output_contains "오류 메시지"
+    [[ $status -eq 0 ]]
+    [[ "$output" =~ "오류 메시지" ]]
 }
 
 @test "print_warning 함수 동작 확인" {
