@@ -102,7 +102,7 @@ main() {
         "check-system")
             # 현재 디렉토리의 bin 경로에서 실행
             local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-            exec "$bin_dir/check-system" "$@"
+            exec "$bin_dir/check-system" "${@:2}"
             ;;
             
         # 기본 명령어들
@@ -116,11 +116,11 @@ main() {
         # 디스크 관리
         "manage-disk")
             local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-            exec "$bin_dir/manage-disk" "$@"
+            exec "$bin_dir/manage-disk" "${@:2}"
             ;;
         "manage-fstab")
             local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-            exec "$bin_dir/manage-fstab" "$@"
+            exec "$bin_dir/manage-fstab" "${@:2}"
             ;;
             
         # RAID 관리
@@ -144,7 +144,7 @@ main() {
             ;;
         "analyze-health")
             local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-            exec "$bin_dir/check-disk-health" "$@"
+            exec "$bin_dir/check-disk-health" "${@:2}"
             ;;
             
         *)
