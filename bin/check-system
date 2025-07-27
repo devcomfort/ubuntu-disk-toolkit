@@ -1,0 +1,191 @@
+#!/bin/bash
+
+# ===================================================================================
+# check-system - 시스템 검사 도구
+# ===================================================================================
+
+set -euo pipefail
+
+# 경로 설정
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -d "$SCRIPT_DIR/../lib" ]]; then
+    LIB_DIR="$SCRIPT_DIR/../lib"
+else
+    LIB_DIR="/usr/local/lib/ubuntu-raid-cli"
+fi
+
+# 라이브러리 로드
+# shellcheck source=lib/common.sh
+source "$LIB_DIR/common.sh"
+# shellcheck source=lib/ui-functions.sh
+source "$LIB_DIR/ui-functions.sh"
+# shellcheck source=lib/system-functions.sh
+source "$LIB_DIR/system-functions.sh"
+
+# 공통 초기화
+init_common
+
+# ===================================================================================
+# 명령어 함수들
+# ===================================================================================
+
+cmd_full_check() {
+    local auto_install=false
+    local detailed=false
+    
+    # 옵션 파싱
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --auto-install)
+                auto_install=true
+                shift
+                ;;
+            --detailed|-d)
+                detailed=true
+                shift
+                ;;
+            --help|-h)
+                show_command_help "full-check" "시스템 전체 검사를 실행합니다" \
+                "check-system full-check [옵션]" \
+                "      --auto-install  필수 패키지 자동 설치
+  -d, --detailed      상세 하드웨어 정보 포함"
+                return 0
+                ;;
+            *)
+                print_error "알 수 없는 옵션: $1"
+                return 1
+                ;;
+        esac
+    done
+    
+    run_system_check "$auto_install" "$detailed"
+}
+
+cmd_info() {
+    local format="summary"
+    
+    # 옵션 파싱
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --format|-f)
+                format="$2"
+                shift 2
+                ;;
+            --help|-h)
+                show_command_help "info" "시스템 정보를 표시합니다" \
+                "check-system info [옵션]" \
+                "  -f, --format    출력 형식 (summary, detailed, json)"
+                return 0
+                ;;
+            *)
+                print_error "알 수 없는 옵션: $1"
+                return 1
+                ;;
+        esac
+    done
+    
+    show_system_info "$format"
+}
+
+cmd_requirements() {
+    local auto_install=false
+    
+    # 옵션 파싱
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --install)
+                auto_install=true
+                shift
+                ;;
+            --help|-h)
+                show_command_help "requirements" "필수 도구 설치 상태를 확인합니다" \
+                "check-system requirements [옵션]" \
+                "      --install    누락된 패키지 자동 설치"
+                return 0
+                ;;
+            *)
+                print_error "알 수 없는 옵션: $1"
+                return 1
+                ;;
+        esac
+    done
+    
+    check_and_install_requirements "$auto_install"
+}
+
+cmd_setup() {
+    auto_setup_system
+}
+
+show_usage() {
+    cat << 'EOF'
+
+check-system - Ubuntu RAID CLI 시스템 검사 도구
+
+사용법:
+  check-system <command> [options]
+
+명령어:
+  full-check       시스템 전체 검사 (기본)
+  info             시스템 정보만 표시
+  requirements     필수 도구 설치 상태 확인
+  setup            시스템 자동 설정
+
+옵션:
+  --help, -h       도움말 표시
+  --version        버전 정보 표시
+
+예시:
+  check-system full-check --auto-install    # 전체 검사 + 자동 설치
+  check-system info --format detailed       # 상세 시스템 정보
+  check-system requirements --install       # 필수 도구 확인 및 설치
+  check-system setup                        # 시스템 자동 설정
+
+EOF
+}
+
+# ===================================================================================
+# 메인 함수
+# ===================================================================================
+
+main() {
+    # 기본 명령어 (인수 없을 때)
+    if [[ $# -eq 0 ]]; then
+        cmd_full_check
+        return $?
+    fi
+    
+    # 명령어 파싱
+    local command="$1"
+    shift
+    
+    case "$command" in
+        "full-check"|"check")
+            cmd_full_check "$@"
+            ;;
+        "info"|"information")
+            cmd_info "$@"
+            ;;
+        "requirements"|"req")
+            cmd_requirements "$@"
+            ;;
+        "setup"|"auto-setup")
+            cmd_setup "$@"
+            ;;
+        "help"|"--help"|"-h")
+            show_usage
+            ;;
+        "version"|"--version")
+            echo "check-system version 1.0.0"
+            ;;
+        *)
+            print_error "알 수 없는 명령어: $command"
+            echo
+            show_usage
+            return 1
+            ;;
+    esac
+}
+
+# 스크립트 실행
+main "$@" 

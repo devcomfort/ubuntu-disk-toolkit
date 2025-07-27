@@ -1,0 +1,142 @@
+#!/bin/bash
+
+# ===================================================================================
+# check_disk_health.sh
+#
+# Direct-Attached Storage (DAS) 및 Software RAID (mdadm) 환경의
+# 디스크 건강 상태와 RAID 어레이 상태를 점검하는 진단 스크립트.
+#
+# 실행 방법:
+# 1. 스크립트 파일에 실행 권한 부여: chmod +x check_disk_health.sh
+# 2. 스크립트 실행: ./check_disk_health.sh
+# ===================================================================================
+
+# 색상 코드 정의
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# 스크립트 헤더 출력 함수
+print_header() {
+    echo -e "\n${BLUE}=======================================================================${NC}"
+    echo -e "${BLUE}  $1${NC}"
+    echo -e "${BLUE}=======================================================================${NC}"
+}
+
+# 관리자 권한 확인
+if [[ $EUID -ne 0 ]]; then
+   echo -e "${RED}이 스크립트는 관리자(root) 권한으로 실행해야 합니다. 'sudo ./check_disk_health.sh'를 사용해 주세요.${NC}" 
+   exit 1
+fi
+
+# 필수 명령어 확인
+check_command() {
+    if ! command -v "$1" &> /dev/null; then
+        echo -e "${RED}오류: 필수 명령어 '$1'을 찾을 수 없습니다. 관련 패키지를 설치해 주세요.${NC}"
+        # 예: smartctl -> smartmontools, mdadm -> mdadm
+        exit 1
+    fi
+}
+
+# 필수 도구 목록
+REQUIRED_CMDS=("lsblk" "dmesg" "mdadm" "smartctl")
+for cmd in "${REQUIRED_CMDS[@]}"; do
+    check_command "$cmd"
+done
+
+# ============================
+# 1단계: 블록 디바이스 목록 확인
+# ============================
+print_header "1. 블록 디바이스 목록 (lsblk)"
+lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,STATE
+if [ $? -ne 0 ]; then
+    echo -e "${RED}lsblk 명령어 실행에 실패했습니다.${NC}"
+fi
+
+# ============================
+# 2단계: RAID 상태 상세 분석 (개선된 버전)
+# ============================
+print_header "2. Software RAID 상태 (mdadm)"
+RAID_EXISTS=false
+
+# /proc/mdstat 파일로 1차 확인
+if [ -s /proc/mdstat ]; then
+    echo -e "${YELLOW}### /proc/mdstat 요약 ###${NC}"
+    cat /proc/mdstat
+    RAID_EXISTS=true
+else
+    # lsblk로 raid member 존재 여부 2차 확인
+    if lsblk -o FSTYPE | grep -q 'linux_raid_member'; then
+        echo -e "${YELLOW}/proc/mdstat는 비어있지만, RAID 멤버 디스크가 존재합니다. 상세 스캔을 시도합니다.${NC}"
+        RAID_EXISTS=true
+    fi
+fi
+
+if [ "$RAID_EXISTS" = true ]; then
+    MD_DEVICES=$(awk '/^md/ {print "/dev/"$1}' /proc/mdstat)
+    
+    if [ -n "$MD_DEVICES" ]; then
+        echo -e "\n${YELLOW}### 각 RAID 어레이 상세 정보 ###${NC}"
+        for device in $MD_DEVICES; do
+            echo -e "\n--- ${GREEN}Details for $device${NC} ---"
+            mdadm --detail "$device"
+        done
+    else
+        # /proc/mdstat가 비었지만 멤버는 있을 경우, scan으로 정보 수집
+        echo -e "\n${YELLOW}활성화된 어레이를 찾지 못했습니다. '--scan'으로 구성을 확인합니다.${NC}"
+        mdadm --detail --scan
+    fi
+else
+    echo -e "${GREEN}mdadm RAID 구성이 감지되지 않았습니다.${NC}"
+fi
+
+
+# ====================================
+# 3단계: 디스크 S.M.A.R.T. 건강 상태 점검
+# ====================================
+print_header "3. 디스크 S.M.A.R.T. 건강 상태"
+# NVMe와 SATA/SCSI 디스크 모두 포함
+DISKS=$(lsblk -d -n -o NAME,TYPE | awk '$2=="disk" {print $1}')
+
+if [ -z "$DISKS" ]; then
+    echo -e "${YELLOW}물리 디스크를 찾을 수 없습니다.${NC}"
+else
+    for disk in $DISKS; do
+        echo -e "\n--- ${GREEN}SMART Health for /dev/$disk${NC} ---"
+        # smartctl이 디스크를 지원하는지 확인
+        if smartctl -i "/dev/$disk" | grep -q "SMART support is: Available"; then
+            # S.M.A.R.T. 전반적인 건강 상태 확인
+            HEALTH_STATUS=$(smartctl -H "/dev/$disk" | awk '/self-assessment/ {print $6}')
+            if [ "$HEALTH_STATUS" == "PASSED" ]; then
+                echo -e "Overall health: ${GREEN}$HEALTH_STATUS${NC}"
+            else
+                echo -e "Overall health: ${RED}$HEALTH_STATUS${NC}"
+            fi
+
+            # 주요 오류 속성 값 출력 (0이 아닌 경우)
+            smartctl -A "/dev/$disk" | awk '
+                /Reallocated_Sector_Ct/ || /Current_Pending_Sector/ || /Offline_Uncorrectable/ {
+                    if ($10 > 0) {
+                        printf "  -> \033[0;31m%-25s: %s\033[0m\n", $2, $10
+                    }
+                }'
+        else
+            echo -e "${YELLOW}SMART를 지원하지 않거나 활성화되지 않은 디스크입니다.${NC}"
+        fi
+    done
+fi
+
+# ========================
+# 4단계: 커널 로그 (dmesg) 분석
+# ========================
+print_header "4. 커널 로그 (dmesg) 디스크 오류 관련 메시지"
+echo -e "${YELLOW}최근 디스크/파일 시스템 관련 오류, 경고, 실패 메시지를 확인합니다.${NC}"
+dmesg --level=err,warn | grep -iE 'error|fail|offline|timeout|ata|scsi|nvme|sd|md|ext4|xfs' | tail -n 30
+if [ $? -ne 0 ]; then
+    # grep에서 아무것도 찾지 못했을 때 종료 코드 1을 반환하므로, 메시지만 출력
+    echo -e "${GREEN}커널 로그에서 최근 주요 디스크 오류가 발견되지 않았습니다.${NC}"
+fi
+
+print_header "진단 완료" 

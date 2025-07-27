@@ -1,0 +1,160 @@
+#!/bin/bash
+
+# ===================================================================================
+# ubuntu-disk-toolkit - Ubuntu Storage & Disk Management Toolkit
+# ===================================================================================
+
+set -euo pipefail
+
+# 스크립트 정보
+SCRIPT_NAME="ubuntu-disk-toolkit"
+VERSION="2.0.0"
+DESCRIPTION="Ubuntu Storage & Disk Management Toolkit"
+
+# 경로 설정
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
+
+# 공통 라이브러리 로드
+source "$LIB_DIR/common.sh"
+source "$LIB_DIR/ui-functions.sh"
+source "$LIB_DIR/disk-functions.sh"
+source "$LIB_DIR/raid-functions.sh"
+
+# 사용법 표시
+show_usage() {
+    cat << 'EOF'
+
+Ubuntu Disk Toolkit - 통합 스토리지 관리 도구
+
+사용법:
+  ubuntu-disk-toolkit <command> [options]
+
+📊 시스템 관리:
+  check-system     시스템 요구사항 검사 및 설정
+  list-disks       디스크 목록 및 상태 표시
+  list-raids       RAID 배열 목록 표시
+
+🔧 디스크 관리:
+  manage-disk      디스크 마운트/언마운트 관리
+  manage-fstab     fstab 항목 관리
+
+⚡ RAID 관리:
+  setup-raid       새로운 RAID 배열 생성
+  remove-raid      RAID 배열 제거
+  check-raids      RAID 상태 확인
+
+🔍 진단 도구:
+  check            시스템 전체 건강 상태 확인
+  analyze-health   종합 디스크 연결 분석
+
+🆘 도움말:
+  ubuntu-disk-toolkit <command> --help    특정 명령어 도움말
+  ubuntu-disk-toolkit --version           버전 정보
+
+예시:
+  # 시스템 설정 및 확인
+  ubuntu-disk-toolkit check-system --auto-install
+  ubuntu-disk-toolkit list-disks --all
+  
+  # RAID 관리
+  ubuntu-disk-toolkit setup-raid --level 1 --disks /dev/sda,/dev/sdb
+  ubuntu-disk-toolkit list-raids --detailed
+  
+  # 디스크 관리
+  ubuntu-disk-toolkit manage-disk mount
+  ubuntu-disk-toolkit manage-fstab add
+  
+  # 종합 진단
+  ubuntu-disk-toolkit analyze-health
+
+💡 Tip: 대부분의 명령어는 interactive 모드를 지원합니다.
+      옵션 없이 실행하면 단계별 안내를 받을 수 있습니다.
+
+EOF
+}
+
+# 버전 정보 표시
+show_version() {
+    echo "$SCRIPT_NAME version $VERSION"
+    echo "$DESCRIPTION"
+}
+
+# 메인 함수
+main() {
+    if [[ $# -eq 0 ]]; then
+        show_usage
+        exit 0
+    fi
+
+    case "${1:-}" in
+        # 도움말 및 정보
+        "-h"|"--help")
+            show_usage
+            exit 0
+            ;;
+        "--version")
+            show_version
+            exit 0
+            ;;
+            
+        # 시스템 관리
+        "check-system")
+            # 현재 디렉토리의 bin 경로에서 실행
+            local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+            exec "$bin_dir/check-system" "$@"
+            ;;
+            
+        # 기본 명령어들
+        "list-disks")
+            cmd_list_disks "${@:2}"
+            ;;
+        "list-raids")
+            cmd_list_raids "${@:2}"
+            ;;
+            
+        # 디스크 관리
+        "manage-disk")
+            local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+            exec "$bin_dir/manage-disk" "$@"
+            ;;
+        "manage-fstab")
+            local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+            exec "$bin_dir/manage-fstab" "$@"
+            ;;
+            
+        # RAID 관리
+        "setup-raid")
+            cmd_setup_raid "${@:2}"
+            ;;
+        "remove-raid")
+            print_warning "RAID 제거는 현재 수동으로만 지원됩니다."
+            print_info "다음 명령어를 사용하세요:"
+            echo "  sudo mdadm --stop /dev/mdX"
+            echo "  sudo mdadm --remove /dev/mdX"
+            echo "  sudo mdadm --zero-superblock /dev/sdX /dev/sdY"
+            ;;
+        "check-raids")
+            cmd_list_raids --detailed "${@:2}"
+            ;;
+            
+        # 진단 도구
+        "check")
+            cmd_system_check "${@:2}"
+            ;;
+        "analyze-health")
+            local bin_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+            exec "$bin_dir/check-disk-health" "$@"
+            ;;
+            
+        *)
+            print_error "알 수 없는 명령어: $1"
+            echo ""
+            show_usage
+            exit 1
+            ;;
+    esac
+}
+
+# 스크립트 실행
+main "$@" 
