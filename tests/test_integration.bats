@@ -23,8 +23,8 @@ teardown() {
 # 메인 CLI 통합 테스트
 # ===================================================================================
 
-@test "ubuntu-raid-cli 도움말 통합 테스트" {
-    run "${BIN_DIR}/ubuntu-raid-cli" --help
+@test "ubuntu-disk-toolkit 도움말 통합 테스트" {
+    run "${BIN_DIR}/ubuntu-disk-toolkit" --help
     assert_command_success
     assert_output_contains "Ubuntu RAID CLI"
     assert_output_contains "시스템 관리"
@@ -33,8 +33,8 @@ teardown() {
     assert_output_contains "진단 도구"
 }
 
-@test "ubuntu-raid-cli 버전 정보" {
-    run "${BIN_DIR}/ubuntu-raid-cli" --version
+@test "ubuntu-disk-toolkit 버전 정보" {
+    run "${BIN_DIR}/ubuntu-disk-toolkit" --version
     assert_command_success
     assert_output_contains "version"
 }
@@ -43,32 +43,32 @@ teardown() {
 # 하위 명령어 통합 실행 테스트
 # ===================================================================================
 
-@test "ubuntu-raid-cli 시스템 검사 통합" {
-    run "${BIN_DIR}/ubuntu-raid-cli" check-system info
+@test "ubuntu-disk-toolkit 시스템 검사 통합" {
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info
     assert_command_success
     assert_output_contains "시스템 정보"
 }
 
-@test "ubuntu-raid-cli 디스크 목록 통합" {
-    run "${BIN_DIR}/ubuntu-raid-cli" list-disks
+@test "ubuntu-disk-toolkit 디스크 목록 통합" {
+    run "${BIN_DIR}/ubuntu-disk-toolkit" list-disks
     assert_command_success
     assert_output_contains "디스크"
 }
 
-@test "ubuntu-raid-cli RAID 목록 통합" {
-    run "${BIN_DIR}/ubuntu-raid-cli" list-raids
+@test "ubuntu-disk-toolkit RAID 목록 통합" {
+    run "${BIN_DIR}/ubuntu-disk-toolkit" list-raids
     assert_command_success
     assert_output_contains "RAID"
 }
 
-@test "ubuntu-raid-cli 디스크 관리 통합" {
-    run "${BIN_DIR}/ubuntu-raid-cli" manage-disk list
+@test "ubuntu-disk-toolkit 디스크 관리 통합" {
+    run "${BIN_DIR}/ubuntu-disk-toolkit" manage-disk list
     assert_command_success
     assert_output_contains "디스크"
 }
 
-@test "ubuntu-raid-cli fstab 관리 통합" {
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-raid-cli" manage-fstab list
+@test "ubuntu-disk-toolkit fstab 관리 통합" {
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list
     assert_command_success
     assert_output_contains "fstab"
 }
@@ -79,29 +79,29 @@ teardown() {
 
 @test "완전한 시스템 검사 워크플로우" {
     # 1. 시스템 호환성 검사
-    run "${BIN_DIR}/ubuntu-raid-cli" check-system info
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info
     assert_command_success
     
     # 2. 필수 도구 확인
-    run "${BIN_DIR}/ubuntu-raid-cli" check-system requirements
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system requirements
     [[ "$status" -eq 0 ]] || [[ "$status" -eq 1 ]]
     
     # 3. 디스크 상태 확인
-    run "${BIN_DIR}/ubuntu-raid-cli" list-disks
+    run "${BIN_DIR}/ubuntu-disk-toolkit" list-disks
     assert_command_success
     
     # 4. RAID 상태 확인
-    run "${BIN_DIR}/ubuntu-raid-cli" list-raids
+    run "${BIN_DIR}/ubuntu-disk-toolkit" list-raids
     assert_command_success
     
     # 5. fstab 상태 확인
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-raid-cli" manage-fstab list
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list
     assert_command_success
 }
 
 @test "종합 진단 시스템 테스트" {
     # analyze-health는 root 권한이 필요하므로 권한 확인만
-    run "${BIN_DIR}/ubuntu-raid-cli" analyze-health
+    run "${BIN_DIR}/ubuntu-disk-toolkit" analyze-health
     # root가 아니면 권한 오류가 발생해야 함
     [[ "$status" -ne 0 ]]
     assert_output_contains "관리자"
@@ -113,26 +113,26 @@ teardown() {
 
 @test "디스크 관리와 fstab 연동" {
     # 1. 사용 가능한 디스크 확인
-    run "${BIN_DIR}/ubuntu-raid-cli" manage-disk list
+    run "${BIN_DIR}/ubuntu-disk-toolkit" manage-disk list
     assert_command_success
     
     # 2. 현재 fstab 상태 확인
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-raid-cli" manage-fstab list
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list
     assert_command_success
     
     # 3. fstab 검증
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-raid-cli" manage-fstab validate
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab validate
     [[ "$status" -eq 0 ]] || [[ "$status" -gt 0 ]]
 }
 
 @test "시스템 검사와 RAID 상태 연동" {
     # 1. 시스템 정보 수집
-    run "${BIN_DIR}/ubuntu-raid-cli" check-system info --format json
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info --format json
     assert_command_success
     assert_output_contains "raid_count"
     
     # 2. 실제 RAID 목록과 비교
-    run "${BIN_DIR}/ubuntu-raid-cli" list-raids
+    run "${BIN_DIR}/ubuntu-disk-toolkit" list-raids
     assert_command_success
 }
 
@@ -142,15 +142,15 @@ teardown() {
 
 @test "시스템 정보 다중 형식 일관성" {
     # summary 형식
-    run "${BIN_DIR}/ubuntu-raid-cli" check-system info --format summary
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info --format summary
     local summary_status=$status
     
     # detailed 형식
-    run "${BIN_DIR}/ubuntu-raid-cli" check-system info --format detailed
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info --format detailed
     local detailed_status=$status
     
     # json 형식
-    run "${BIN_DIR}/ubuntu-raid-cli" check-system info --format json
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info --format json
     local json_status=$status
     
     # 모든 형식이 동일한 결과를 가져야 함
@@ -160,15 +160,15 @@ teardown() {
 
 @test "fstab 분석 다중 형식 일관성" {
     # table 형식
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-raid-cli" manage-fstab list --format table
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list --format table
     local table_status=$status
     
     # detailed 형식
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-raid-cli" manage-fstab list --format detailed
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list --format detailed
     local detailed_status=$status
     
     # json 형식
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-raid-cli" manage-fstab list --format json
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list --format json
     local json_status=$status
     
     # 모든 형식이 성공해야 함
@@ -182,19 +182,19 @@ teardown() {
 # ===================================================================================
 
 @test "잘못된 명령어 체인 처리" {
-    run "${BIN_DIR}/ubuntu-raid-cli" nonexistent-command
+    run "${BIN_DIR}/ubuntu-disk-toolkit" nonexistent-command
     [[ "$status" -ne 0 ]]
     assert_output_contains "알 수 없는"
 }
 
 @test "하위 명령어 오류 전파" {
-    run "${BIN_DIR}/ubuntu-raid-cli" check-system nonexistent-subcommand
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system nonexistent-subcommand
     [[ "$status" -ne 0 ]]
     assert_output_contains "알 수 없는"
 }
 
 @test "옵션 오류 전파" {
-    run "${BIN_DIR}/ubuntu-raid-cli" check-system info --invalid-option
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info --invalid-option
     [[ "$status" -ne 0 ]]
     assert_output_contains "알 수 없는"
 }
@@ -205,13 +205,13 @@ teardown() {
 
 @test "동시 명령어 실행 안정성" {
     # 여러 명령어를 병렬로 실행하여 안정성 테스트
-    "${BIN_DIR}/ubuntu-raid-cli" list-disks &
+    "${BIN_DIR}/ubuntu-disk-toolkit" list-disks &
     local pid1=$!
     
-    FSTAB_FILE="${TEST_FSTAB_FILE}" "${BIN_DIR}/ubuntu-raid-cli" manage-fstab list &
+    FSTAB_FILE="${TEST_FSTAB_FILE}" "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list &
     local pid2=$!
     
-    "${BIN_DIR}/ubuntu-raid-cli" check-system info &
+    "${BIN_DIR}/ubuntu-disk-toolkit" check-system info &
     local pid3=$!
     
     # 모든 프로세스 완료 대기
@@ -238,7 +238,7 @@ done
 EOF
     chmod +x "${MOCK_DIR}/lsblk"
     
-    run "${BIN_DIR}/ubuntu-raid-cli" list-disks
+    run "${BIN_DIR}/ubuntu-disk-toolkit" list-disks
     assert_command_success
 }
 
@@ -336,9 +336,9 @@ EOF
     
     for cmd in "${commands[@]}"; do
         if [[ "$cmd" == "manage-fstab list" ]]; then
-            FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-raid-cli" $cmd
+            FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" $cmd
         else
-            run "${BIN_DIR}/ubuntu-raid-cli" $cmd
+            run "${BIN_DIR}/ubuntu-disk-toolkit" $cmd
         fi
         
         # 명령어가 최소한 실행되어야 함 (일부는 실패할 수 있음)
