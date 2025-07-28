@@ -8,7 +8,7 @@ load test_helpers
 
 setup() {
     setup_test_environment
-    setup_mocks
+    # setup_mocks - 공통 라이브러리 테스트에는 모킹이 불필요
     
     # 공통 라이브러리 로드 테스트를 위한 경로 설정
     export LIB_DIR="${BATS_PROJECT_ROOT}/lib"

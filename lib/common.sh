@@ -250,7 +250,7 @@ show_progress() {
 # 백업 생성
 create_backup() {
     local file="$1"
-    local custom_backup_dir="$2"
+    local custom_backup_dir="${2:-}"
     local backup_dir
     
     # 커스텀 백업 디렉토리가 지정되었으면 사용
