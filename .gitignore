@@ -1,0 +1,34 @@
+# 임시 파일들
+*.tmp
+*.bak
+*.swp
+*~
+
+# 로그 파일들
+*.log
+
+# OS 생성 파일들
+.DS_Store
+Thumbs.db
+
+# IDE 파일들
+.vscode/
+.idea/
+*.iml
+
+# Node.js (문서 생성용)
+node_modules/
+npm-debug.log*
+
+# Python (스크립트용)
+__pycache__/
+*.pyc
+*.pyo
+
+# 테스트 결과
+test-results/
+coverage/
+
+# 임시 백업 파일들
+*.backup
+backups/*.bak 
