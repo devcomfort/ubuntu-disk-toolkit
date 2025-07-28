@@ -201,11 +201,12 @@ run_single_test() {
 # 모든 테스트 실행
 run_all_tests() {
     local test_files=(
-        "test_common.bats"
-        "test_system.bats"
-        "test_fstab.bats"
-        "test_disk.bats"
-        "test_integration.bats"
+            "test_common.bats"
+    "test_system.bats" 
+    "test_fstab.bats"
+    "test_disk.bats"
+    "test_integration.bats"
+    "test_api_integration.bats"
     )
     
     local total_tests=${#test_files[@]}

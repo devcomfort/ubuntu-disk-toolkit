@@ -10,6 +10,10 @@ setup_test_environment() {
     export BATS_PROJECT_ROOT="$(cd "${BATS_TEST_DIRNAME}/.." && pwd)"
     export PATH="${BATS_PROJECT_ROOT}/bin:${PATH}"
     
+    # 라이브러리 및 바이너리 디렉토리 설정
+    export LIB_DIR="${BATS_PROJECT_ROOT}/lib"
+    export BIN_DIR="${BATS_PROJECT_ROOT}/bin"
+    
     # 테스트용 임시 디렉토리 설정
     export BATS_TMPDIR="${BATS_TEST_TMPDIR:-/tmp}"
     export TEST_TEMP_DIR="${BATS_TMPDIR}/bash-raid-cli-test-$$"
