@@ -422,6 +422,52 @@ disk_analyze_system_summary 2>/dev/null || true
 raid_analyze_system 2>/dev/null || true
 raid_get_available_disks 2>/dev/null || true
 
+echo "=== 확장된 Mock 테스트 ==="
+
+# ID resolver 함수들 (blkid Mock 활용)
+resolve_device_uuid "/dev/sda" 2>/dev/null || true
+resolve_device_partuuid "/dev/sda" 2>/dev/null || true  
+resolve_device_label "/dev/sda" 2>/dev/null || true
+resolve_to_device "UUID=12345678-1234-1234-1234-123456781234" 2>/dev/null || true
+
+# Validator 함수들 (blkid, parted Mock 활용)
+validate_device_has_filesystem "/dev/sda" 2>/dev/null || true
+validate_device_partition_table "/dev/sda" 2>/dev/null || true
+validate_filesystem_type "/dev/sda" "ext4" 2>/dev/null || true
+
+# Disk 함수들 (dd, shred Mock 활용) - 가상 디스크로 안전하게 테스트
+wipe_disk_partition_table "/dev/virtual-test" 2>/dev/null || true
+secure_wipe_disk "/dev/virtual-test" 2>/dev/null || true
+create_partition "/dev/virtual-test" "ext4" "100%" 2>/dev/null || true
+
+# RAID 함수들 (mkfs Mock 활용)
+format_raid_filesystem "/dev/md0" "ext4" 2>/dev/null || true
+
+# Fail-safe 함수들 테스트
+ensure_safe_mount_options "defaults" 2>/dev/null || true
+add_nofail_option "defaults" 2>/dev/null || true
+add_raid_safe_options "defaults" "raid1" 2>/dev/null || true
+
+# 추가 Disk 함수들
+get_partition_type "/dev/sda" 2>/dev/null || true
+check_disk_partition_alignment "/dev/sda" 2>/dev/null || true
+get_disk_usage_stats "/dev/sda" 2>/dev/null || true
+
+# 추가 RAID 함수들
+get_raid_device_list 2>/dev/null || true
+check_raid_device_health "/dev/md0" 2>/dev/null || true
+get_raid_sync_status "/dev/md0" 2>/dev/null || true
+
+# 추가 Validator 함수들
+validate_mount_point "/tmp" 2>/dev/null || true
+validate_filesystem_options "defaults,noatime" "ext4" 2>/dev/null || true
+validate_raid_configuration "raid1" "/dev/sda" "/dev/sdb" 2>/dev/null || true
+
+# 추가 fstab 함수들
+parse_fstab_entry "UUID=test-uuid / ext4 defaults 0 1" 2>/dev/null || true
+validate_fstab_entry "/" "/dev/sda1" "ext4" "defaults" "0" "1" 2>/dev/null || true
+backup_fstab_file "/etc/fstab" 2>/dev/null || true
+
 echo "=== API 테스트 완료 ==="
 
 # 정리

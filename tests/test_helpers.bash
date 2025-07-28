@@ -594,6 +594,16 @@ setup_mocks() {
     create_mock_script "swapon" mock_swapon  
     create_mock_script "pvs" mock_pvs
     
+    # 확장된 Mock 시스템 명령어들
+    create_mock_script "blkid" mock_blkid
+    create_mock_script "parted" mock_parted
+    create_mock_script "mkfs.ext4" mock_mkfs_ext4
+    create_mock_script "mkfs.xfs" mock_mkfs_xfs
+    create_mock_script "mkfs.btrfs" mock_mkfs_btrfs
+    create_mock_script "dd" mock_dd
+    create_mock_script "shred" mock_shred
+    create_mock_script "wipefs" mock_wipefs
+    
     # Mock 스크립트 생성
     create_mock_script "lsblk" mock_lsblk
     create_mock_script "mdadm" mock_mdadm_wrapper
@@ -849,5 +859,379 @@ mock_check_disk_exists() {
     else
         echo "✗ 디스크 '$disk'를 찾을 수 없습니다."
         return 1
+    fi
+}
+
+# ===================================================================================
+# 확장된 Mock 시스템 명령어들
+# ===================================================================================
+
+# blkid Mock 함수 - 블록 디바이스 정보 조회
+mock_blkid() {
+    local device=""
+    local output_option=""
+    local type_option=""
+    
+    # 옵션 파싱
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -s)
+                type_option="$2"
+                shift 2
+                ;;
+            -o)
+                output_option="$2"
+                shift 2
+                ;;
+            *)
+                device="$1"
+                shift
+                ;;
+        esac
+    done
+    
+    # 디바이스별 Mock 정보 제공
+    case "$device" in
+        "/dev/sda"|"/dev/sda1")
+            case "$type_option" in
+                "UUID")
+                    [[ "$output_option" == "value" ]] && echo "12345678-1234-1234-1234-123456781234" || echo "UUID=\"12345678-1234-1234-1234-123456781234\""
+                    ;;
+                "PARTUUID")
+                    [[ "$output_option" == "value" ]] && echo "87654321-4321-4321-4321-876543214321" || echo "PARTUUID=\"87654321-4321-4321-4321-876543214321\""
+                    ;;
+                "LABEL")
+                    [[ "$output_option" == "value" ]] && echo "root" || echo "LABEL=\"root\""
+                    ;;
+                "TYPE")
+                    [[ "$output_option" == "value" ]] && echo "ext4" || echo "TYPE=\"ext4\""
+                    ;;
+                *)
+                    echo "/dev/sda1: UUID=\"12345678-1234-1234-1234-123456781234\" TYPE=\"ext4\" PARTUUID=\"87654321-4321-4321-4321-876543214321\""
+                    ;;
+            esac
+            ;;
+        "/dev/sdb"|"/dev/sdb1")
+            case "$type_option" in
+                "UUID")
+                    [[ "$output_option" == "value" ]] && echo "22345678-2234-2234-2234-223456782234" || echo "UUID=\"22345678-2234-2234-2234-223456782234\""
+                    ;;
+                "TYPE")
+                    [[ "$output_option" == "value" ]] && echo "ext4" || echo "TYPE=\"ext4\""
+                    ;;
+                *)
+                    echo "/dev/sdb1: UUID=\"22345678-2234-2234-2234-223456782234\" TYPE=\"ext4\""
+                    ;;
+            esac
+            ;;
+        "/dev/test-empty"|"/dev/virtual-sda")
+            # 테스트용 빈 디스크는 정보 없음
+            return 2
+            ;;
+        *)
+            # 기본 Mock 정보
+            if [[ -n "$type_option" ]]; then
+                case "$type_option" in
+                    "UUID")
+                        [[ "$output_option" == "value" ]] && echo "test-uuid-mock" || echo "UUID=\"test-uuid-mock\""
+                        ;;
+                    "TYPE")
+                        [[ "$output_option" == "value" ]] && echo "ext4" || echo "TYPE=\"ext4\""
+                        ;;
+                esac
+            else
+                echo "$device: UUID=\"test-uuid-mock\" TYPE=\"ext4\""
+            fi
+            ;;
+    esac
+}
+
+# parted Mock 함수 - 파티션 관리
+mock_parted() {
+    local device=""
+    local command=""
+    local silent_mode=false
+    
+    # 옵션 파싱
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -s)
+                silent_mode=true
+                shift
+                ;;
+            *)
+                if [[ -z "$device" ]]; then
+                    device="$1"
+                else
+                    command="$*"
+                    break
+                fi
+                shift
+                ;;
+        esac
+    done
+    
+    case "$command" in
+        "print")
+            echo "Model: Virtual disk (virtio)"
+            echo "Disk $device: 21.5GB"
+            echo "Sector size (logical/physical): 512B/512B"
+            echo "Partition Table: gpt"
+            echo ""
+            echo "Number  Start   End     Size    File system  Name  Flags"
+            echo " 1      1049kB  21.5GB  21.5GB  ext4               boot, esp"
+            ;;
+        mkpart*)
+            echo "Information: You may need to update /etc/fstab."
+            ;;
+        mklabel*)
+            echo "Warning: The existing disk label on $device will be destroyed."
+            ;;
+        *)
+            echo "GNU Parted 3.3"
+            ;;
+    esac
+}
+
+# mkfs.ext4 Mock 함수
+mock_mkfs_ext4() {
+    local device=""
+    local force=false
+    
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -F)
+                force=true
+                shift
+                ;;
+            *)
+                device="$1"
+                shift
+                ;;
+        esac
+    done
+    
+    echo "mke2fs 1.46.3 (27-Jul-2021)"
+    echo "Creating filesystem with 5242880 4k blocks and 1310720 inodes"
+    echo "Filesystem UUID: $(date +%s | md5sum | cut -c1-8)-1234-5678-9abc-123456789abc"
+    echo "Superblock backups stored on blocks:"
+    echo "        32768, 98304, 163840, 229376, 294912, 819200, 884736, 1605632, 2654208,"
+    echo "        4096000"
+    echo ""
+    echo "Allocating group tables: done"
+    echo "Writing inode tables: done"
+    echo "Creating journal (32768 blocks): done"
+    echo "Writing superblocks and filesystem accounting information: done"
+}
+
+# mkfs.xfs Mock 함수
+mock_mkfs_xfs() {
+    local device=""
+    local force=false
+    
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -f)
+                force=true
+                shift
+                ;;
+            *)
+                device="$1"
+                shift
+                ;;
+        esac
+    done
+    
+    echo "meta-data=$device           isize=512    agcount=4, agsize=1310720 blks"
+    echo "         =                       sectsz=512   attr=2, projid32bit=1"
+    echo "         =                       crc=1        finobt=1, sparse=1, rmapbt=0"
+    echo "         =                       reflink=1"
+    echo "data     =                       bsize=4096   blocks=5242880, imaxpct=25"
+    echo "         =                       sunit=0      swidth=0 blks"
+    echo "naming   =version 2              bsize=4096   ascii-ci=0, ftype=1"
+    echo "log      =internal log           bsize=4096   blocks=2560, version=2"
+    echo "         =                       sectsz=512   sunit=0 blks, lazy-count=1"
+    echo "realtime =none                   extsz=4096   blocks=0, rtextents=0"
+}
+
+# mkfs.btrfs Mock 함수
+mock_mkfs_btrfs() {
+    local device=""
+    local force=false
+    
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -f)
+                force=true
+                shift
+                ;;
+            *)
+                device="$1"
+                shift
+                ;;
+        esac
+    done
+    
+    echo "btrfs-progs v5.16.2"
+    echo "See http://btrfs.wiki.kernel.org for more information."
+    echo ""
+    echo "Label:              (none)"
+    echo "UUID:               $(date +%s | sha256sum | cut -c1-8)-1234-5678-9abc-123456789abc"
+    echo "Node size:          16384"
+    echo "Sector size:        4096"
+    echo "Filesystem size:    20.00GiB"
+    echo "Block group profiles:"
+    echo "  Data:             single            8.00MiB"
+    echo "  Metadata:         DUP               1.00GiB"
+    echo "  System:           DUP               8.00MiB"
+    echo "SSD detected:       no"
+    echo "Incompat features:  extref, skinny-metadata"
+    echo "Runtime features:"
+    echo "Checksum:           crc32c"
+    echo "Number of devices:  1"
+    echo "Devices:"
+    echo "   ID        SIZE  PATH"
+    echo "    1    20.00GiB  $device"
+}
+
+# dd Mock 함수 - 디스크 읽기/쓰기
+mock_dd() {
+    local input_file=""
+    local output_file=""
+    local block_size="512"
+    local count=""
+    local status="none"
+    
+    # 옵션 파싱
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            if=*)
+                input_file="${1#if=}"
+                ;;
+            of=*)
+                output_file="${1#of=}"
+                ;;
+            bs=*)
+                block_size="${1#bs=}"
+                ;;
+            count=*)
+                count="${1#count=}"
+                ;;
+            status=*)
+                status="${1#status=}"
+                ;;
+        esac
+        shift
+    done
+    
+    # Mock 성능 수치 생성
+    local bytes_written
+    if [[ -n "$count" ]]; then
+        case "$block_size" in
+            *M)
+                bytes_written=$((${block_size%M} * ${count:-1} * 1024 * 1024))
+                ;;
+            *k|*K)
+                bytes_written=$((${block_size%[kK]} * ${count:-1} * 1024))
+                ;;
+            *)
+                bytes_written=$((block_size * ${count:-1}))
+                ;;
+        esac
+    else
+        bytes_written=$((100 * 1024 * 1024))  # 기본 100MB
+    fi
+    
+    # 진행률 표시 (status=progress인 경우)
+    if [[ "$status" == "progress" ]]; then
+        echo "100+0 records in"
+        echo "100+0 records out"
+        echo "$bytes_written bytes ($((bytes_written / 1024 / 1024)) MB, $((bytes_written / 1000 / 1000)) MiB) copied, 1.5 s, 67.2 MB/s"
+    elif [[ "$status" == "none" ]]; then
+        # 조용히 실행
+        :
+    else
+        echo "100+0 records in"
+        echo "100+0 records out"
+        echo "$bytes_written bytes transferred in 1.5 secs (67239123 bytes/sec)"
+    fi
+}
+
+# shred Mock 함수 - 안전한 파일 삭제
+mock_shred() {
+    local verbose=false
+    local force=false
+    local zero=false
+    local iterations=3
+    local target=""
+    
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -v|--verbose)
+                verbose=true
+                shift
+                ;;
+            -f|--force)
+                force=true
+                shift
+                ;;
+            -z|--zero)
+                zero=true
+                shift
+                ;;
+            -n)
+                iterations="$2"
+                shift 2
+                ;;
+            *)
+                target="$1"
+                shift
+                ;;
+        esac
+    done
+    
+    if [[ "$verbose" == true ]]; then
+        for ((i=1; i<=iterations; i++)); do
+            echo "shred: $target: pass $i/$iterations (random)..."
+        done
+        if [[ "$zero" == true ]]; then
+            echo "shred: $target: pass $((iterations+1))/$((iterations+1)) (000000)..."
+        fi
+        echo "shred: $target: removing"
+        echo "shred: $target: renamed to $(dirname "$target")/00000000"
+        echo "shred: $target: removed"
+    fi
+}
+
+# wipefs Mock 함수 - 파일시스템 시그니처 제거
+mock_wipefs() {
+    local all=false
+    local force=false
+    local device=""
+    
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -a|--all)
+                all=true
+                shift
+                ;;
+            -f|--force)
+                force=true
+                shift
+                ;;
+            *)
+                device="$1"
+                shift
+                ;;
+        esac
+    done
+    
+    if [[ "$all" == true ]]; then
+        echo "wipefs: $device: 2 bytes were erased at offset 0x000001fe (dos): 55 aa"
+        echo "wipefs: $device: 8 bytes were erased at offset 0x00000200 (ext4): 53 ef 01 00 00 00 00 00"
+    else
+        echo "DEVICE OFFSET TYPE UUID                                 LABEL"
+        echo "$device 0x1fe   dos                                      "
+        echo "$device 0x438   ext4 12345678-1234-1234-1234-123456781234 "
     fi
 } 
