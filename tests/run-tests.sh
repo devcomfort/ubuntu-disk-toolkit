@@ -217,13 +217,13 @@ run_all_tests() {
     for test_file in "${test_files[@]}"; do
         if [[ -f "${TESTS_DIR}/${test_file}" ]]; then
             if run_single_test "$test_file"; then
-                ((passed_tests++))
+                passed_tests=$((passed_tests + 1))
             else
-                ((failed_tests++))
+                failed_tests=$((failed_tests + 1))
             fi
         else
             print_warning "테스트 파일을 찾을 수 없습니다: $test_file"
-            ((failed_tests++))
+            failed_tests=$((failed_tests + 1))
         fi
     done
     

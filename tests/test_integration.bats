@@ -26,11 +26,11 @@ teardown() {
 @test "ubuntu-disk-toolkit 도움말 통합 테스트" {
     run "${BIN_DIR}/ubuntu-disk-toolkit" --help
     assert_command_success
-    assert_output_contains "Ubuntu RAID CLI"
-    assert_output_contains "시스템 관리"
-    assert_output_contains "디스크 관리"
-    assert_output_contains "RAID 관리"
-    assert_output_contains "진단 도구"
+    assert_output_contains "Ubuntu Disk Toolkit"
+    assert_output_contains "정보 조회"
+    assert_output_contains "list-disks"
+    assert_output_contains "list-raids"
+    assert_output_contains "list-fstab"
 }
 
 @test "ubuntu-disk-toolkit 버전 정보" {
