@@ -182,15 +182,13 @@ assert_file_contains() {
 }
 
 assert_command_success() {
-    local cmd="$1"
-    run $cmd
-    [[ "$status" -eq 0 ]] || (echo "Command failed: $cmd" && echo "Output: $output" && return 1)
+    # run 명령어가 이미 실행된 후에 호출되므로 status만 확인
+    [[ "$status" -eq 0 ]] || (echo "Command failed with status: $status" && echo "Output: $output" && return 1)
 }
 
 assert_command_failure() {
-    local cmd="$1"
-    run $cmd
-    [[ "$status" -ne 0 ]] || (echo "Command should have failed: $cmd" && return 1)
+    # run 명령어가 이미 실행된 후에 호출되므로 status만 확인
+    [[ "$status" -ne 0 ]] || (echo "Command should have failed but succeeded" && echo "Output: $output" && return 1)
 }
 
 assert_output_contains() {

@@ -68,43 +68,35 @@ lint *args='':
         
         # 자동 설치 모드 확인
         if [[ "{{args}}" == *"-y"* ]] || [[ "{{args}}" == *"--yes"* ]]; then
-            echo "🔧 shellcheck 자동 설치 중..."
-            sudo apt update -qq && sudo apt install -y shellcheck
-            if which shellcheck > /dev/null 2>&1; then
-                echo "✅ shellcheck 설치 완료"
-            else
-                echo "❌ shellcheck 설치 실패. 기본 구문 검사로 대체합니다."
-            fi
+            echo "🔧 자동으로 shellcheck를 설치합니다..."
+            sudo apt update && sudo apt install -y shellcheck
         else
-            echo "💡 shellcheck 설치를 권장합니다 (더 정확한 검사 가능)"
-            echo -n "지금 설치하시겠습니까? [y/N]: "
-            read -r response
-            if [[ "$response" =~ ^[Yy]$ ]]; then
-                echo "🔧 shellcheck 설치 중..."
-                sudo apt update -qq && sudo apt install -y shellcheck
-                if which shellcheck > /dev/null 2>&1; then
-                    echo "✅ shellcheck 설치 완료"
-                else
-                    echo "❌ shellcheck 설치 실패. 기본 구문 검사로 대체합니다."
-                fi
+            echo ""
+            echo "다음 명령어로 설치하세요:"
+            echo "  sudo apt install shellcheck"
+            echo ""
+            read -p "지금 설치하시겠습니까? [y/N]: " -r
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                sudo apt update && sudo apt install -y shellcheck
             else
-                echo "ℹ️ shellcheck 설치를 건너뜁니다"
+                echo "⚠️ shellcheck 없이 기본 문법 검사만 수행합니다"
+                echo ""
+                # bash 기본 문법 검사로 폴백
+                find bin lib -name "*.sh" -o -name "ubuntu-disk-toolkit" -o -name "check-system" -o -name "manage-*" | while read -r file; do
+                    echo "📝 $file"
+                    bash -n "$file" || echo "❌ 문법 오류: $file"
+                done
+                return 0
             fi
         fi
     fi
     
-    # 실제 검사 수행
+    # shellcheck 실행
     if which shellcheck > /dev/null 2>&1; then
-        echo "📝 bin/ 디렉토리 검사..."
-        find {{bin_dir}} -name "*.sh" -o -name "*" -type f -executable | xargs shellcheck || true
-        echo "📝 lib/ 디렉토리 검사..."
-        find {{lib_dir}} -name "*.sh" | xargs shellcheck || true
-        echo "📝 tests/ 디렉토리 검사..."
-        find {{tests_dir}} -name "*.sh" -o -name "*.bash" | xargs shellcheck || true
-        echo "✅ shellcheck 코드 검사 완료"
-    else
-        echo "ℹ️ 기본적인 구문 검사로 대체합니다..."
-        find {{bin_dir}} {{lib_dir}} {{tests_dir}} -name "*.sh" -exec bash -n {} \; && echo "✅ 구문 검사 완료"
+        find bin lib -name "*.sh" -o -name "ubuntu-disk-toolkit" -o -name "check-system" -o -name "manage-*" | while read -r file; do
+            echo "📝 $file"
+            shellcheck "$file"
+        done
     fi
 
 # shellcheck 설치 확인 및 설치

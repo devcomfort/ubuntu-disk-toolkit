@@ -443,7 +443,7 @@ show_completion_message() {
     echo "  ubuntu-disk-toolkit setup-raid --level 1 --disks /dev/sda,/dev/sdb"
     echo "  check-disk-health"
     echo ""
-    
+
     print_info "문제가 발생하면 로그 파일을 확인하세요: /var/log/ubuntu-disk-toolkit.log"
 }
 

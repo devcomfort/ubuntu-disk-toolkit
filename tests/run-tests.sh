@@ -178,7 +178,8 @@ run_single_test() {
     
     # 상세 모드
     if [[ "$VERBOSE" == "true" ]]; then
-        bats_opts+=("--verbose-run")
+        # bats 1.2.1에서는 --verbose-run 옵션이 없으므로 --tap 사용
+        bats_opts+=("--formatter" "tap")
     fi
     
     # 병렬 실행
