@@ -78,7 +78,7 @@ format_disk_size() {
     local size=$size_bytes
     local unit_index=0
     
-    while [[ $size -gt 1024 && $unit_index -lt $((${#units[@]} - 1)) ]]; do
+    while [[ $size -ge 1024 && $unit_index -lt $((${#units[@]} - 1)) ]]; do
         size=$((size / 1024))
         ((unit_index++))
     done

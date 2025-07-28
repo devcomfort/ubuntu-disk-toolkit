@@ -34,16 +34,36 @@ parse_fstab() {
         return 1
     fi
     
-    # 주석과 빈 줄 제외하고 파싱
-    grep -v '^\s*#' "$fstab_file" | grep -v '^\s*$' | while IFS= read -r line; do
-        # 공백으로 분할
-        read -r device mountpoint fstype options dump pass <<< "$line"
+    # awk를 사용한 더 안전한 파싱
+    awk '
+    # 주석과 빈 줄 건너뛰기
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*$/ { next }
+    
+    {
+        # 라인 내 주석 제거
+        sub(/#.*$/, "")
         
-        # 유효한 항목인지 확인
-        if [[ -n "$device" && -n "$mountpoint" && -n "$fstype" ]]; then
-            echo "$device:${mountpoint}:${fstype}:${options:-defaults}:${dump:-0}:${pass:-0}"
-        fi
-    done
+        # 앞뒤 공백 제거
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+        
+        # 빈 라인 건너뛰기
+        if (length($0) == 0) next
+        
+        # 필드 수 확인 (최소 3개: device, mountpoint, fstype)
+        if (NF >= 3) {
+            device = $1
+            mountpoint = $2
+            fstype = $3
+            options = (NF >= 4) ? $4 : "defaults"
+            dump = (NF >= 5) ? $5 : "0"
+            pass = (NF >= 6) ? $6 : "0"
+            
+            # 콜론으로 구분된 형식으로 출력
+            print device ":" mountpoint ":" fstype ":" options ":" dump ":" pass
+        }
+    }
+    ' "$fstab_file"
 }
 
 # fstab 분석 정보 출력
@@ -108,7 +128,7 @@ analyze_fstab() {
         "detailed")
             local count=0
             while IFS=':' read -r device mountpoint fstype options dump pass; do
-                ((count++))
+                count=$((count + 1))
                 
                 print_header "fstab 항목 #$count"
                 table_start "상세 정보"
@@ -129,13 +149,18 @@ analyze_fstab() {
                     table_row "실제 장치" "$device_real"
                 fi
                 
-                # 마운트 상태
-                if findmnt "$mountpoint" &>/dev/null; then
+                # 마운트 상태 (set -e 호환)
+                local is_mounted=false
+                if findmnt "$mountpoint" >/dev/null 2>&1; then
+                    is_mounted=true
+                fi
+                
+                if [[ "$is_mounted" == "true" ]]; then
                     table_row "상태" "✅ 마운트됨"
                     
                     # 마운트 정보
                     local mount_info
-                    mount_info=$(findmnt -n -o SOURCE,FSTYPE,OPTIONS "$mountpoint" 2>/dev/null)
+                    mount_info=$(findmnt -n -o SOURCE,FSTYPE,OPTIONS "$mountpoint" 2>/dev/null || echo "")
                     if [[ -n "$mount_info" ]]; then
                         table_row "현재 마운트" "$mount_info"
                     fi

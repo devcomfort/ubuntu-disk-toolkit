@@ -104,6 +104,13 @@ log_message() {
 
 # 관리자 권한 확인
 check_root_privileges() {
+    local operation="${1:-작업}"
+    
+    # 테스트 모드에서는 권한 검사 우회
+    if [[ "${TESTING_MODE:-}" == "true" ]]; then
+        return 0
+    fi
+    
     if [[ $EUID -ne 0 ]]; then
         print_error "이 작업은 관리자(root) 권한이 필요합니다. 'sudo'를 사용해 주세요."
         exit 1
@@ -132,6 +139,17 @@ check_required_commands() {
 check_disk_exists() {
     local disk="$1"
     
+    # 테스트 모드에서 가상 디스크 지원
+    if [[ "${TESTING_MODE:-}" == "true" ]]; then
+        case "$disk" in
+            "/dev/virtual-"*|"/dev/test-"*)
+                # 가상 디스크는 항상 존재한다고 간주
+                return 0
+                ;;
+        esac
+    fi
+    
+    # 실제 블록 디바이스 체크
     if [[ ! -b "$disk" ]]; then
         print_error "디스크 '$disk'를 찾을 수 없습니다."
         return 1

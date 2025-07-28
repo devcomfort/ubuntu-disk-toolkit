@@ -58,7 +58,10 @@ cmd_list() {
         esac
     done
     
-    print_header "디스크 및 마운트 상태"
+    # JSON 형식이 아닐 때만 헤더 출력
+    if [[ "$format" != "json" ]]; then
+        print_header "디스크 및 마운트 상태"
+    fi
     
     case "$format" in
         "table")

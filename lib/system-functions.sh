@@ -11,6 +11,12 @@ if [[ -z "${RED:-}" ]]; then
     source "${SCRIPT_DIR}/common.sh"
 fi
 
+# UI 함수 라이브러리 로드 (table_* 함수 사용)
+if [[ -z "$(type -t table_start 2>/dev/null)" ]]; then
+    # shellcheck source=lib/ui-functions.sh
+    source "${SCRIPT_DIR}/ui-functions.sh"
+fi
+
 # ===================================================================================
 # 시스템 검사 함수
 # ===================================================================================
