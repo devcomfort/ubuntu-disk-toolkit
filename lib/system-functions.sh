@@ -433,4 +433,65 @@ EOF
     print_info "이제 Ubuntu RAID CLI의 모든 기능을 사용할 수 있습니다"
     
     return 0
+}
+
+# ===================================================================================
+# 시스템 정보 수집 함수
+# ===================================================================================
+
+# 시스템 정보 수집 및 출력
+get_system_info() {
+    print_header "시스템 정보 수집"
+    
+    # OS 정보
+    local os_info=""
+    if [[ -f /etc/os-release ]]; then
+        os_info=$(grep "^PRETTY_NAME=" /etc/os-release | cut -d'"' -f2)
+    fi
+    if [[ -z "$os_info" ]]; then
+        os_info=$(uname -s)
+    fi
+    
+    # 커널 정보
+    local kernel_info
+    kernel_info=$(uname -r)
+    
+    # 아키텍처 정보
+    local arch_info
+    arch_info=$(uname -m)
+    
+    # 메모리 정보 (bytes)
+    local memory_info=""
+    if command -v free >/dev/null 2>&1; then
+        memory_info=$(free -b | awk 'NR==2{print $2}')
+    fi
+    
+    # 디스크 개수
+    local disk_count=0
+    if command -v lsblk >/dev/null 2>&1; then
+        disk_count=$(lsblk -n -o TYPE | grep -c "^disk" 2>/dev/null || echo "0")
+    fi
+    
+    # RAID 배열 개수
+    local raid_count=0
+    if [[ -f /proc/mdstat ]] && command -v grep >/dev/null 2>&1; then
+        raid_count=$(grep -c "^md" /proc/mdstat 2>/dev/null || echo "0")
+    fi
+    
+    # 마운트 포인트 개수
+    local mount_count=0
+    if [[ -f /proc/mounts ]]; then
+        mount_count=$(wc -l < /proc/mounts 2>/dev/null || echo "0")
+    fi
+    
+    # 정보 출력
+    echo "Operating System: $os_info"
+    echo "Kernel Version: $kernel_info"
+    echo "Architecture: $arch_info"
+    [[ -n "$memory_info" ]] && echo "Memory: $memory_info bytes"
+    echo "Disk Count: $disk_count"
+    echo "RAID Arrays: $raid_count"
+    echo "Mount Points: $mount_count"
+    
+    return 0
 } 

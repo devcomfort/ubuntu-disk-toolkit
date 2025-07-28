@@ -527,16 +527,26 @@ remove_fstab_entry_interactive() {
 
 # fstab 항목 제거 (프로그래매틱)
 remove_fstab_entry() {
-    local mountpoint="$1"
+    local target="$1"
     
-    if [[ -z "$mountpoint" ]]; then
-        print_error "마운트 포인트를 지정해야 합니다"
+    if [[ -z "$target" ]]; then
+        print_error "마운트 포인트 또는 디바이스를 지정해야 합니다"
         return 1
     fi
     
+    # 디바이스 식별자인지 마운트 포인트인지 판단
+    local search_pattern
+    if [[ "$target" =~ ^(UUID=|PARTUUID=|LABEL=|/dev/) ]]; then
+        # 디바이스 식별자로 검색 (첫 번째 필드)
+        search_pattern="^$target "
+    else
+        # 마운트 포인트로 검색 (두 번째 필드)
+        search_pattern=" $target "
+    fi
+    
     # 항목 존재 확인
-    if ! grep -q " $mountpoint " "$FSTAB_FILE" 2>/dev/null; then
-        print_error "fstab에서 마운트 포인트를 찾을 수 없습니다: $mountpoint"
+    if ! grep -q "$search_pattern" "$FSTAB_FILE" 2>/dev/null; then
+        print_error "fstab에서 마운트 포인트를 찾을 수 없습니다: $target"
         return 1
     fi
     
@@ -544,16 +554,16 @@ remove_fstab_entry() {
     create_backup "$FSTAB_FILE"
     
     # 항목 제거
-    print_info "fstab에서 항목 제거 중: $mountpoint"
+    print_info "fstab에서 항목 제거 중: $target"
     
     # 임시 파일을 사용하여 안전하게 제거
     local temp_file
     temp_file=$(mktemp)
     
-    grep -v " $mountpoint " "$FSTAB_FILE" > "$temp_file"
+    grep -v "$search_pattern" "$FSTAB_FILE" > "$temp_file"
     
     if mv "$temp_file" "$FSTAB_FILE"; then
-        print_success "fstab 항목 제거됨: $mountpoint"
+        print_success "fstab 항목 제거됨: $target"
         return 0
     else
         print_error "fstab 수정 실패"
@@ -701,4 +711,23 @@ test_fstab_mount() {
     done <<< "$entries"
     
     print_success "fstab 테스트 마운트 완료"
+}
+
+# ===================================================================================
+# 호환성 및 별칭 함수
+# ===================================================================================
+
+# 테스트 호환성을 위한 별칭 함수들
+parse_fstab_file() {
+    parse_fstab "$@"
+}
+
+# fstab 파일 검증 (validate_fstab와 호환)
+validate_fstab_file() {
+    validate_fstab "$@"
+}
+
+# fstab 항목 추가 (호환성 함수)
+add_fstab_entry_safe() {
+    add_fstab_entry "$@"
 } 

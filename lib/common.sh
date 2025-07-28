@@ -208,11 +208,23 @@ confirm_action() {
 # 설정 파일 로드
 load_config() {
     if [[ -f "$CONFIG_FILE" ]]; then
+        # 읽기 권한 확인
+        if [[ ! -r "$CONFIG_FILE" ]]; then
+            print_error "설정 파일 읽기 권한이 없습니다: $CONFIG_FILE"
+            return 1
+        fi
+        
         # shellcheck source=/dev/null
-        source "$CONFIG_FILE"
-        print_debug "설정 파일 로드됨: $CONFIG_FILE"
+        if source "$CONFIG_FILE" 2>/dev/null; then
+            print_debug "설정 파일 로드됨: $CONFIG_FILE"
+            return 0
+        else
+            print_error "설정 파일 로드 실패: $CONFIG_FILE"
+            return 1
+        fi
     else
         print_warning "설정 파일을 찾을 수 없습니다: $CONFIG_FILE"
+        return 1
     fi
 }
 
@@ -238,10 +250,14 @@ show_progress() {
 # 백업 생성
 create_backup() {
     local file="$1"
+    local custom_backup_dir="$2"
     local backup_dir
     
+    # 커스텀 백업 디렉토리가 지정되었으면 사용
+    if [[ -n "$custom_backup_dir" ]]; then
+        backup_dir="$custom_backup_dir"
     # 테스트 모드일 때는 테스트 임시 디렉토리 사용
-    if [[ "${TESTING_MODE:-}" == "true" && -n "${TEST_TEMP_DIR:-}" ]]; then
+    elif [[ "${TESTING_MODE:-}" == "true" && -n "${TEST_TEMP_DIR:-}" ]]; then
         backup_dir="${TEST_TEMP_DIR}"
     else
         backup_dir="${PROJECT_ROOT}/backups"

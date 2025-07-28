@@ -82,8 +82,8 @@ teardown() {
     assert_command_success
     assert_output_contains '"filesystems"'
     
-    # 루트 파일시스템은 항상 존재해야 함
-    assert_output_contains '"target":"/"'
+    # 루트 파일시스템은 항상 존재해야 함 (띄어쓰기 포함)
+    assert_output_contains '"target": "/"'
     
     # 라이브러리 함수로 파싱 테스트
     source "${LIB_DIR}/common.sh"
@@ -125,12 +125,14 @@ teardown() {
     assert_command_success
     
     # 기본적인 시스템 정보들이 포함되어야 함
-    assert_output_contains "Ubuntu\|Debian\|Linux" # 최소한 Linux는 포함되어야 함
+    # Ubuntu, Debian, 또는 Linux 중 하나는 포함되어야 함  
+    [[ "$output" =~ Ubuntu|Debian|Linux ]]
     
     # 커널 정보
     run uname -r
     assert_command_success
-    assert_output_contains "[0-9]" # 버전 번호 포함
+    # 커널 버전에 숫자가 포함되어 있는지 확인
+    [[ "$output" =~ [0-9] ]]
     
     # 메모리 정보
     run free -b
@@ -294,10 +296,13 @@ EOF
     assert_output_contains "true"
     
     # 주석 라인 제외 확인
-    run grep -v "^#" "$temp_config" | grep -v "^$"
-    assert_command_success
+    local non_comment_lines
+    non_comment_lines=$(grep -v "^#" "$temp_config" | grep -v "^$")
+    [[ -n "$non_comment_lines" ]] # 비어있지 않은 설정 라인이 있어야 함
+    
     # 주석이 제외되고 실제 설정만 있는지 확인
-    local actual_lines=$(grep -v "^#" "$temp_config" | grep -v "^$" | wc -l)
+    local actual_lines
+    actual_lines=$(echo "$non_comment_lines" | wc -l)
     [[ $actual_lines -eq 9 ]] # 9개의 실제 설정 라인
 }
 
