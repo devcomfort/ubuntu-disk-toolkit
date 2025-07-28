@@ -132,9 +132,13 @@ declare -A OPTIONAL_PACKAGES=(
 
 declare -A DEV_PACKAGES=(
     ["shellcheck"]="Bash 스크립트 정적 분석"
-    ["bats"]="Bash 테스팅 프레임워크"
+    ["bats"]="Bash 테스팅 프레임워크"  
     ["jq"]="JSON 처리 도구"
     ["curl"]="HTTP 클라이언트"
+    ["ruby"]="Ruby 인터프리터 (bashcov 의존성)"
+    ["ruby-dev"]="Ruby 개발 헤더 (gem 빌드용)"
+    ["build-essential"]="C 컴파일러 도구체인"
+    ["git"]="버전 관리 시스템"
 )
 
 # 패키지 설치 상태 확인
@@ -226,6 +230,44 @@ install_packages() {
     return 0
 }
 
+# Bashcov 설치 (Ruby gem)
+install_bashcov() {
+    print_header "Bashcov 코드 커버리지 도구 확인"
+    
+    if command -v bashcov &> /dev/null; then
+        print_success "Bashcov 이미 설치됨: $(bashcov --version)"
+        return 0
+    fi
+    
+    # Ruby 설치 확인
+    if ! command -v ruby &> /dev/null; then
+        print_error "Bashcov 설치에는 Ruby가 필요합니다"
+        print_info "먼저 ruby 패키지를 설치하세요: apt install ruby ruby-dev"
+        return 1
+    fi
+    
+    print_info "Bashcov 설치 중..."
+    
+    # gem install 시도 (사용자 디렉토리에)
+    if gem install --user-install bashcov; then
+        print_success "Bashcov 설치 완료"
+        
+        # PATH 안내
+        local gem_path=$(ruby -e 'puts Gem.user_dir')/bin
+        if [[ ":$PATH:" != *":$gem_path:"* ]]; then
+            print_info "다음 경로를 PATH에 추가하세요: $gem_path"
+            print_info "또는 다음 명령어를 실행하세요:"
+            echo "  echo 'export PATH=\"$gem_path:\$PATH\"' >> ~/.bashrc"
+            echo "  source ~/.bashrc"
+        fi
+        return 0
+    else
+        print_error "Bashcov 설치 실패"
+        print_info "수동으로 설치하세요: gem install bashcov"
+        return 1
+    fi
+}
+
 # Just 설치
 install_just() {
     print_header "Just 빌드 도구 확인"
@@ -282,6 +324,91 @@ install_just() {
     else
         print_error "Just 다운로드 실패"
         rm -rf "$temp_dir"
+        return 1
+    fi
+}
+
+# 설치 검증
+verify_installation() {
+    local failed_checks=0
+    
+    print_info "핵심 도구 작동 확인 중..."
+    
+    # 필수 도구들 검증
+    local tools=(
+        "lsblk:블록 디바이스 조회"
+        "mdadm:RAID 관리"
+        "smartctl:SMART 정보 조회"
+        "parted:파티션 관리"
+        "mkfs.ext4:ext4 파일시스템 생성"
+        "blkid:블록 디바이스 식별"
+        "findmnt:마운트 정보 조회"
+    )
+    
+    for tool_info in "${tools[@]}"; do
+        local tool="${tool_info%%:*}"
+        local desc="${tool_info##*:}"
+        
+        if command -v "$tool" &> /dev/null; then
+            if "$tool" --version &> /dev/null || "$tool" --help &> /dev/null; then
+                print_success "$tool - $desc"
+            else
+                print_warning "$tool - $desc (버전 확인 실패)"
+                ((failed_checks++))
+            fi
+        else
+            print_error "$tool - $desc (설치되지 않음)"
+            ((failed_checks++))
+        fi
+    done
+    
+    # 개발 도구들 검증 (선택적)
+    if command -v bats &> /dev/null; then
+        print_success "bats - Bash 테스팅 프레임워크"
+    fi
+    
+    if command -v shellcheck &> /dev/null; then
+        print_success "shellcheck - Bash 정적 분석"
+    fi
+    
+    if command -v just &> /dev/null; then
+        print_success "just - 빌드 도구"
+    fi
+    
+    if command -v bashcov &> /dev/null; then
+        print_success "bashcov - 코드 커버리지"
+    fi
+    
+    # 테스트 환경 검증
+    print_info "테스트 환경 확인 중..."
+    
+    if [[ -w /tmp ]]; then
+        print_success "/tmp 쓰기 권한 확인"
+    else
+        print_error "/tmp 쓰기 권한 없음"
+        ((failed_checks++))
+    fi
+    
+    if [[ -d /proc ]]; then
+        print_success "/proc 파일시스템 접근 가능"
+    else
+        print_error "/proc 파일시스템 없음"
+        ((failed_checks++))
+    fi
+    
+    if [[ -r /etc/os-release ]]; then
+        print_success "/etc/os-release 읽기 가능"
+    else
+        print_warning "/etc/os-release 읽기 불가"
+    fi
+    
+    # 결과 요약
+    if [[ $failed_checks -eq 0 ]]; then
+        print_success "모든 필수 도구가 정상 작동합니다"
+        return 0
+    else
+        print_warning "$failed_checks개의 도구에서 문제가 발견되었습니다"
+        print_info "일부 기능이 제한될 수 있습니다"
         return 1
     fi
 }
@@ -379,7 +506,14 @@ main() {
         
         # Just 설치
         install_just || print_warning "Just 설치 실패"
+        
+        # Bashcov 설치
+        install_bashcov || print_warning "Bashcov 설치 실패"
     fi
+    
+    # 설치 검증
+    print_header "설치 검증"
+    verify_installation
     
     print_header "설치 완료"
     print_success "🎉 Ubuntu Disk Toolkit 의존성 설치가 완료되었습니다!"
@@ -388,6 +522,7 @@ main() {
         print_info "개발 환경이 준비되었습니다. 다음 명령어로 시작하세요:"
         echo "  just setup"
         echo "  just test"
+        echo "  just coverage"
     else
         print_info "다음 명령어로 설치를 완료하세요:"
         echo "  sudo ./install/install.sh"

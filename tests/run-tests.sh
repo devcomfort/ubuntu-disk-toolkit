@@ -207,6 +207,7 @@ run_all_tests() {
     "test_disk.bats"
     "test_integration.bats"
     "test_api_integration.bats"
+    "test_real_environment.bats"
     )
     
     local total_tests=${#test_files[@]}
