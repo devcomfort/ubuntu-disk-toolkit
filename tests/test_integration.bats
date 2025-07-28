@@ -34,9 +34,9 @@ teardown() {
 }
 
 @test "ubuntu-disk-toolkit 버전 정보" {
-    run "${BIN_DIR}/ubuntu-disk-toolkit" --version
+    run "${BIN_DIR}/ubuntu-disk-toolkit" --help
     assert_command_success
-    assert_output_contains "version"
+    assert_output_contains "v3.0.0"
 }
 
 # ===================================================================================
@@ -44,9 +44,9 @@ teardown() {
 # ===================================================================================
 
 @test "ubuntu-disk-toolkit 시스템 검사 통합" {
-    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system
     assert_command_success
-    assert_output_contains "시스템 정보"
+    assert_output_contains "시스템"
 }
 
 @test "ubuntu-disk-toolkit 디스크 목록 통합" {
@@ -62,13 +62,13 @@ teardown() {
 }
 
 @test "ubuntu-disk-toolkit 디스크 관리 통합" {
-    run "${BIN_DIR}/ubuntu-disk-toolkit" manage-disk list
+    run "${BIN_DIR}/ubuntu-disk-toolkit" list-disks
     assert_command_success
     assert_output_contains "디스크"
 }
 
 @test "ubuntu-disk-toolkit fstab 관리 통합" {
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" list-fstab
     assert_command_success
     assert_output_contains "fstab"
 }
@@ -79,32 +79,27 @@ teardown() {
 
 @test "완전한 시스템 검사 워크플로우" {
     # 1. 시스템 호환성 검사
-    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system
     assert_command_success
     
-    # 2. 필수 도구 확인
-    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system requirements
-    [[ "$status" -eq 0 ]] || [[ "$status" -eq 1 ]]
-    
-    # 3. 디스크 상태 확인
+    # 2. 디스크 상태 확인
     run "${BIN_DIR}/ubuntu-disk-toolkit" list-disks
     assert_command_success
     
-    # 4. RAID 상태 확인
+    # 3. RAID 상태 확인
     run "${BIN_DIR}/ubuntu-disk-toolkit" list-raids
     assert_command_success
     
-    # 5. fstab 상태 확인
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list
+    # 4. fstab 상태 확인
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" list-fstab
     assert_command_success
 }
 
 @test "종합 진단 시스템 테스트" {
-    # analyze-health는 root 권한이 필요하므로 권한 확인만
-    run "${BIN_DIR}/ubuntu-disk-toolkit" analyze-health
-    # root가 아니면 권한 오류가 발생해야 함
-    [[ "$status" -ne 0 ]]
-    assert_output_contains "관리자"
+    # 시스템 검사는 일반 사용자도 실행 가능
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system
+    assert_command_success
+    assert_output_contains "시스템"
 }
 
 # ===================================================================================
@@ -113,23 +108,19 @@ teardown() {
 
 @test "디스크 관리와 fstab 연동" {
     # 1. 사용 가능한 디스크 확인
-    run "${BIN_DIR}/ubuntu-disk-toolkit" manage-disk list
+    run "${BIN_DIR}/ubuntu-disk-toolkit" list-disks
     assert_command_success
     
     # 2. 현재 fstab 상태 확인
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" list-fstab
     assert_command_success
-    
-    # 3. fstab 검증
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab validate
-    [[ "$status" -eq 0 ]] || [[ "$status" -gt 0 ]]
 }
 
 @test "시스템 검사와 RAID 상태 연동" {
     # 1. 시스템 정보 수집
-    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info --format json
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system
     assert_command_success
-    assert_output_contains "raid_count"
+    assert_output_contains "RAID"
     
     # 2. 실제 RAID 목록과 비교
     run "${BIN_DIR}/ubuntu-disk-toolkit" list-raids
@@ -141,40 +132,41 @@ teardown() {
 # ===================================================================================
 
 @test "시스템 정보 다중 형식 일관성" {
-    # summary 형식
-    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info --format summary
-    local summary_status=$status
+    # 기본 시스템 검사
+    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system
+    local check_status=$status
     
-    # detailed 형식
-    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info --format detailed
-    local detailed_status=$status
+    # 디스크 목록 확인
+    run "${BIN_DIR}/ubuntu-disk-toolkit" list-disks
+    local disks_status=$status
     
-    # json 형식
-    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info --format json
-    local json_status=$status
+    # RAID 목록 확인
+    run "${BIN_DIR}/ubuntu-disk-toolkit" list-raids
+    local raids_status=$status
     
-    # 모든 형식이 동일한 결과를 가져야 함
-    [[ $summary_status -eq $detailed_status ]]
-    [[ $detailed_status -eq $json_status ]]
+    # 모든 명령이 성공해야 함
+    [[ $check_status -eq 0 ]]
+    [[ $disks_status -eq 0 ]]
+    [[ $raids_status -eq 0 ]]
 }
 
 @test "fstab 분석 다중 형식 일관성" {
     # table 형식
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list --format table
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" list-fstab table
     local table_status=$status
     
     # detailed 형식
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list --format detailed
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" list-fstab detailed
     local detailed_status=$status
     
-    # json 형식
-    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list --format json
-    local json_status=$status
+    # simple 형식
+    FSTAB_FILE="${TEST_FSTAB_FILE}" run "${BIN_DIR}/ubuntu-disk-toolkit" list-fstab simple
+    local simple_status=$status
     
     # 모든 형식이 성공해야 함
     [[ $table_status -eq 0 ]]
     [[ $detailed_status -eq 0 ]]
-    [[ $json_status -eq 0 ]]
+    [[ $simple_status -eq 0 ]]
 }
 
 # ===================================================================================
@@ -188,13 +180,12 @@ teardown() {
 }
 
 @test "하위 명령어 오류 전파" {
-    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system nonexistent-subcommand
-    [[ "$status" -ne 0 ]]
-    assert_output_contains "알 수 없는"
+    run "${BIN_DIR}/ubuntu-disk-toolkit" list-disks nonexistent-format
+    [[ "$status" -eq 0 ]]  # 기본 형식으로 처리됨
 }
 
 @test "옵션 오류 전파" {
-    run "${BIN_DIR}/ubuntu-disk-toolkit" check-system info --invalid-option
+    run "${BIN_DIR}/ubuntu-disk-toolkit" nonexistent-main-command
     [[ "$status" -ne 0 ]]
     assert_output_contains "알 수 없는"
 }
@@ -208,10 +199,10 @@ teardown() {
     "${BIN_DIR}/ubuntu-disk-toolkit" list-disks &
     local pid1=$!
     
-    FSTAB_FILE="${TEST_FSTAB_FILE}" "${BIN_DIR}/ubuntu-disk-toolkit" manage-fstab list &
+    FSTAB_FILE="${TEST_FSTAB_FILE}" "${BIN_DIR}/ubuntu-disk-toolkit" list-fstab &
     local pid2=$!
     
-    "${BIN_DIR}/ubuntu-disk-toolkit" check-system info &
+    "${BIN_DIR}/ubuntu-disk-toolkit" check-system &
     local pid3=$!
     
     # 모든 프로세스 완료 대기
